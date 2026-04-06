@@ -4,12 +4,19 @@
 """
 FastAPI application for the ICU-Guardian Environment.
 
-Uses openenv_core's create_fastapi_app helper to expose the environment
-over HTTP endpoints compatible with OpenEnv clients.
+Provides HTTP endpoints compatible with OpenEnv HTTPEnvClient:
+- POST /reset — Initialize new episode
+- POST /step — Execute action
+- GET /state — Episode metadata
+- GET /health — Health check
 """
 
 import os
 import sys
+from typing import Any, Dict
+
+from fastapi import FastAPI, Body
+from dataclasses import asdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -20,59 +27,96 @@ from server.icu_environment import ICUEnvironment
 task_name = os.getenv("ICU_TASK", "vital_stabilization")
 env = ICUEnvironment(task_name=task_name)
 
-# Try using OpenEnv's create_app, fall back to create_fastapi_app, fall back to manual
-try:
-    from openenv_core.env_server.http_server import create_fastapi_app
-    app = create_fastapi_app(env, ICUAction, ICUObservation)
-except ImportError:
-    # Manual FastAPI setup
-    from fastapi import FastAPI, Body
-    from fastapi.responses import JSONResponse
-    from dataclasses import asdict
-    from typing import Any, Dict
+app = FastAPI(
+    title="OpenEnv Environment HTTP API",
+    description="ICU-Guardian: OpenEnv-compliant ICU patient monitoring environment",
+    version="1.0.0",
+)
 
-    app = FastAPI(
-        title="ICU-Guardian Environment",
-        description="OpenEnv-compliant ICU patient monitoring environment",
-        version="1.0.0",
+
+def serialize_observation(obs: ICUObservation) -> Dict[str, Any]:
+    """Convert ICUObservation to HTTPEnvClient-compatible format."""
+    obs_dict = asdict(obs)
+    reward = obs_dict.pop("reward", None)
+    done = obs_dict.pop("done", False)
+    obs_dict.pop("metadata", None)
+    return {"observation": obs_dict, "reward": reward, "done": done}
+
+
+@app.post("/reset")
+async def reset(request: Dict[str, Any] = Body(default={})):
+    """Reset the environment to initial state."""
+    obs = env.reset(
+        seed=request.get("seed"),
+        episode_id=request.get("episode_id"),
     )
+    return serialize_observation(obs)
 
-    @app.post("/reset")
-    async def reset(request: Dict[str, Any] = Body(default={})):
-        obs = env.reset(
-            seed=request.get("seed"),
-            episode_id=request.get("episode_id"),
-        )
-        obs_dict = asdict(obs)
-        reward = obs_dict.pop("reward", None)
-        done = obs_dict.pop("done", False)
-        obs_dict.pop("metadata", None)
-        return {"observation": obs_dict, "reward": reward, "done": done}
 
-    @app.post("/step")
-    async def step(request: Dict[str, Any] = Body(...)):
-        action_data = request.get("action", {})
-        metadata = action_data.pop("metadata", {})
-        action = ICUAction(**action_data)
-        action.metadata = metadata
-        obs = env.step(action)
-        obs_dict = asdict(obs)
-        reward = obs_dict.pop("reward", None)
-        done = obs_dict.pop("done", False)
-        obs_dict.pop("metadata", None)
-        return {"observation": obs_dict, "reward": reward, "done": done}
+@app.post("/step")
+async def step(request: Dict[str, Any] = Body(...)):
+    """Execute an action in the environment."""
+    action_data = request.get("action", {})
+    if isinstance(action_data, str):
+        action_data = {"action": action_data}
+    metadata = action_data.pop("metadata", {})
+    action = ICUAction(**action_data)
+    action.metadata = metadata
+    obs = env.step(action)
+    return serialize_observation(obs)
 
-    @app.get("/state")
-    async def get_state():
-        return asdict(env.state)
 
-    @app.get("/health")
-    async def health():
-        return {"status": "healthy"}
+@app.get("/state")
+async def get_state():
+    """Return current environment state."""
+    return asdict(env.state)
 
-    @app.get("/")
-    async def root():
-        return {"status": "ok", "environment": "icu_guardian", "version": "1.0.0"}
+
+@app.get("/health")
+async def health():
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
+
+@app.get("/schema")
+async def schema():
+    """Return environment action/observation schema."""
+    return {
+        "action_schema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["administer_meds", "adjust_oxygen", "trigger_code_sepsis", "wait"]},
+                "drug": {"type": "string", "enum": ["vasopressor", "antihypertensive"], "nullable": True},
+                "dose": {"type": "string", "enum": ["low", "high"], "nullable": True},
+                "level": {"type": "string", "enum": ["increase", "decrease"], "nullable": True},
+            },
+            "required": ["action"],
+        },
+        "observation_schema": {
+            "type": "object",
+            "properties": {
+                "HR": {"type": "integer"},
+                "BP_sys": {"type": "integer"},
+                "BP_dia": {"type": "integer"},
+                "SpO2": {"type": "integer"},
+                "Temp": {"type": "number"},
+                "trend": {"type": "string"},
+                "step_number": {"type": "integer"},
+                "task_name": {"type": "string"},
+            },
+        },
+    }
+
+
+@app.get("/")
+async def root():
+    """Root redirect/info."""
+    return {
+        "status": "ok",
+        "environment": "icu_guardian",
+        "version": "1.0.0",
+        "endpoints": ["/reset", "/step", "/state", "/health", "/schema", "/docs"],
+    }
 
 
 if __name__ == "__main__":
