@@ -1,21 +1,22 @@
-"""
-ICU-Guardian: Typed models for Action, Observation, and State.
+# Copyright (c) ICU-Guardian Contributors
+# Licensed under MIT License
 
-These dataclasses define the contract between agent and environment.
-They are compatible with OpenEnv's base classes when running in Python 3.10+
-Docker containers, and fall back gracefully for local development.
+"""
+Data models for the ICU-Guardian Environment.
+
+Uses Pydantic models inheriting from OpenEnv base types for full spec compliance.
 """
 
-from dataclasses import dataclass, field
 from typing import Optional
+from pydantic import Field
 
-# Base classes for OpenEnv type compatibility
-Action = object
-Observation = object
-State = object
+# Support both in-repo and standalone imports
+try:
+    from openenv.core.env_server.types import Action, Observation, State
+except ImportError:
+    from openenv_core.env_server.types import Action, Observation, State
 
 
-@dataclass
 class ICUAction(Action):
     """
     An action the AI agent can take in the ICU environment.
@@ -23,17 +24,16 @@ class ICUAction(Action):
     Action Types:
         - "administer_meds": Give medication (requires drug + dose)
         - "adjust_oxygen": Change oxygen support (requires level)
-        - "trigger_code_sepsis": Emergency sepsis alert (no params)
-        - "wait": Monitor without intervention (no params)
+        - "trigger_code_sepsis": Emergency sepsis alert
+        - "wait": Monitor without intervention
     """
 
-    action: str = "wait"
-    drug: Optional[str] = None      # "vasopressor" | "antihypertensive"
-    dose: Optional[str] = None      # "low" | "high"
-    level: Optional[str] = None     # "increase" | "decrease"
+    action: str = Field(default="wait", description="Action type to perform")
+    drug: Optional[str] = Field(default=None, description="Drug: vasopressor or antihypertensive")
+    dose: Optional[str] = Field(default=None, description="Dose: low or high")
+    level: Optional[str] = Field(default=None, description="Oxygen level: increase or decrease")
 
 
-@dataclass
 class ICUObservation(Observation):
     """
     The patient's current vital signs and environment state.
@@ -44,31 +44,14 @@ class ICUObservation(Observation):
         BP_dia: Diastolic blood pressure (mmHg), target ~80
         SpO2: Oxygen saturation (%), must stay >= 95
         Temp: Body temperature (°C), normal 36.5-37.5
-
-    Context:
-        trend: Natural language summary of the last 3 steps
-        step_number: Current step in the episode
-        task_name: Which task is active
-        last_action_error: Error message if the last action was invalid
     """
 
-    HR: int = 80
-    BP_sys: int = 120
-    BP_dia: int = 80
-    SpO2: int = 98
-    Temp: float = 37.0
-    trend: str = "No prior data."
-    step_number: int = 0
-    task_name: str = "vital_stabilization"
-    last_action_error: Optional[str] = None
-
-
-@dataclass
-class ICUState(State):
-    """Episode metadata for the ICU environment."""
-
-    episode_id: str = ""
-    step_count: int = 0
-    task_name: str = "vital_stabilization"
-    max_steps: int = 15
-    done: bool = False
+    HR: int = Field(default=80, description="Heart Rate in bpm")
+    BP_sys: int = Field(default=120, description="Systolic Blood Pressure mmHg")
+    BP_dia: int = Field(default=80, description="Diastolic Blood Pressure mmHg")
+    SpO2: int = Field(default=98, description="Oxygen Saturation %")
+    Temp: float = Field(default=37.0, description="Body Temperature °C")
+    trend: str = Field(default="No prior data.", description="Trend summary of last steps")
+    step_number: int = Field(default=0, description="Current step in episode")
+    task_name: str = Field(default="vital_stabilization", description="Active task name")
+    last_action_error: Optional[str] = Field(default=None, description="Error from last action")
