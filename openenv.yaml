@@ -1,0 +1,3 @@
+name: icu_guardian
+version: "1.0.0"
+description: "ICU patient monitoring environment — train AI agents to stabilize critically ill patients through vital sign management, medication titration, and sepsis detection."

@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.env
+.venv/
+venv/
+outputs/logs/*
+outputs/evals/*
+!outputs/logs/.gitkeep
+!outputs/evals/.gitkeep
+.DS_Store
