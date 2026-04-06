@@ -1,62 +1,37 @@
-# Copyright (c) ICU-Guardian Contributors
-# Licensed under MIT License
-
-# Multi-stage build using openenv-base
-ARG BASE_IMAGE=ghcr.io/meta-pytorch/openenv-base:latest
-FROM ghcr.io/meta-pytorch/openenv-base:latest AS builder
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy environment code
-COPY . /app/env
-
-WORKDIR /app/env
-
-# Ensure uv is available
-RUN if ! command -v uv >/dev/null 2>&1; then \
-        curl -LsSf https://astral.sh/uv/install.sh | sh && \
-        mv /root/.local/bin/uv /usr/local/bin/uv && \
-        mv /root/.local/bin/uvx /usr/local/bin/uvx; \
-    fi
-
-# Install git for building from git repos (build-time only)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+    curl git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    install -m 0755 /root/.local/bin/uv /usr/local/bin/uv && \
-    install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx
+# Install Python dependencies
+COPY pyproject.toml ./pyproject.toml
+RUN pip install --no-cache-dir \
+    "openenv-core>=0.2.0" \
+    "pydantic>=2.0" \
+    "fastapi>=0.104.0" \
+    "uvicorn>=0.24.0"
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-install-project --no-editable
+# Copy application code
+COPY models.py ./models.py
+COPY openenv.yaml ./openenv.yaml
+COPY client.py ./client.py
+COPY __init__.py ./__init__.py
+COPY server/ ./server/
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-editable
+# Expose port 8000 (OpenEnv standard)
+EXPOSE 8000
 
-# Final runtime stage
-FROM ghcr.io/meta-pytorch/openenv-base:latest
-
-WORKDIR /app
-
-# Copy the virtual environment from builder
-COPY --from=builder /app/env/.venv /app/.venv
-
-# Copy the environment code
-COPY --from=builder /app/env /app/env
-
-# Set PATH to use the virtual environment
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Set PYTHONPATH so imports work correctly
-ENV PYTHONPATH="/app/env:$PYTHONPATH"
+# Enable web interface
 ENV ENABLE_WEB_INTERFACE=true
+ENV PYTHONPATH="/app:$PYTHONPATH"
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 # Run the FastAPI server
-CMD ["sh", "-c", "cd /app/env && uvicorn server.app:app --host 0.0.0.0 --port 8000"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
