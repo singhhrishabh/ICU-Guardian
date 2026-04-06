@@ -233,11 +233,10 @@ def run_task(client: OpenAI, task_name: str, max_steps: int) -> None:
             )
             action_str = action_to_string(action_dict)
 
-            # Execute step
-            result = env.step(action)
-            obs = result["observation"]
-            reward = result.get("reward", 0.0)
-            done = result.get("done", False)
+            # Execute step — returns ICUObservation directly
+            obs = env.step(action)
+            reward = obs.reward or 0.0
+            done = obs.done
             error = obs.last_action_error
 
             rewards.append(reward)
