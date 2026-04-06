@@ -1,11 +1,20 @@
 # 🏥 ICU-Guardian: OpenEnv Environment for Critical Care AI
 
-[![OpenEnv](https://img.shields.io/badge/OpenEnv-v0.2+-blue)](https://github.com/meta-pytorch/OpenEnv)
+[![OpenEnv](https://img.shields.io/badge/OpenEnv-v1.0+-blue)](https://github.com/meta-pytorch/OpenEnv)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://docker.com)
+[![HF Space](https://img.shields.io/badge/🤗%20Space-Live-green)](https://huggingface.co/spaces/singhhrishabh/icu-guardian)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-**Train AI agents to monitor and stabilize critically ill ICU patients** through the standard OpenEnv `step()` / `reset()` / `state()` API.
+> **Meta PyTorch OpenEnv Hackathon Submission** — Train AI agents to monitor and stabilize critically ill ICU patients through the standard OpenEnv `step()` / `reset()` / `state()` API.
+
+### 🎬 Live Demo
+
+**🔗 Try it live:** [singhhrishabh-icu-guardian.hf.space](https://singhhrishabh-icu-guardian.hf.space)
+
+https://github.com/user-attachments/assets/live_api_demo.webp
+
+*Interactive ICU monitoring dashboard with real-time vital signs, clinical actions, and reward tracking.*
 
 ## 🎯 Overview
 
@@ -165,7 +174,7 @@ python app.py
 ### Run with Docker
 ```bash
 docker build -t icu-guardian .
-docker run -p 7860:7860 icu-guardian
+docker run -p 8000:8000 icu-guardian
 ```
 
 ### Use the Environment
@@ -175,7 +184,7 @@ from client import ICUGuardianEnv
 from models import ICUAction
 
 async def main():
-    async with ICUGuardianEnv(base_url="http://localhost:7860") as env:
+    async with ICUGuardianEnv(base_url="http://localhost:8000") as env:
         result = await env.reset()
         print(f"Initial HR: {result.observation.HR}")
         

@@ -13,9 +13,12 @@ Provides HTTP endpoints compatible with OpenEnv HTTPEnvClient:
 
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import FastAPI, Body
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dataclasses import asdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,6 +35,11 @@ app = FastAPI(
     description="ICU-Guardian: OpenEnv-compliant ICU patient monitoring environment",
     version="1.0.0",
 )
+
+# Serve static files for the web dashboard
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 def serialize_observation(obs: ICUObservation) -> Dict[str, Any]:
@@ -110,7 +118,10 @@ async def schema():
 
 @app.get("/")
 async def root():
-    """Root redirect/info."""
+    """Serve the web dashboard."""
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file), media_type="text/html")
     return {
         "status": "ok",
         "environment": "icu_guardian",

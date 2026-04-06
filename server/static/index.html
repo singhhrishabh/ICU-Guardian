@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICU-Guardian — OpenEnv Environment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242736;
+            --border: #2d3148;
+            --text: #e4e6f0;
+            --text-dim: #8b8fa3;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.2);
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.15);
+            --red: #ef4444;
+            --red-dim: rgba(239, 68, 68, 0.15);
+            --yellow: #eab308;
+            --yellow-dim: rgba(234, 179, 8, 0.15);
+            --blue: #3b82f6;
+            --blue-dim: rgba(59, 130, 246, 0.15);
+            --pink: #ec4899;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f1117 50%, #1a0e2e 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 2rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c7d2fe, #6366f1, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
+        }
+        .hero p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            max-width: 600px;
+        }
+        .badge-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .badge {
+            padding: 0.25rem 0.7rem;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+        .badge-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+        .badge-purple { background: var(--accent-glow); color: #a78bfa; border: 1px solid rgba(99,102,241,0.3); }
+
+        .main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+        /* Vitals Monitor */
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+        }
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .vital-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+        .vital-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .vital-card .label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .vital-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0.15rem 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .vital-card .unit {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        .vital-card .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+        .status-safe { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .status-warning { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+        .status-danger { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Controls */
+        .controls-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) { .controls-section { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .panel h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .action-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .action-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.1); }
+        .action-btn:active { transform: scale(0.97); }
+        .action-btn .icon { font-size: 1rem; margin-right: 0.3rem; }
+        .action-btn .desc { display: block; font-size: 0.65rem; color: var(--text-dim); margin-top: 2px; }
+        .action-btn.reset-btn { background: var(--accent-glow); border-color: rgba(99,102,241,0.4); grid-column: span 2; text-align: center; }
+        .action-btn.reset-btn:hover { background: rgba(99,102,241,0.2); }
+
+        /* Log */
+        .log-panel {
+            background: #0d0f14;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-family: 'Menlo', 'Fira Code', monospace;
+            font-size: 0.72rem;
+            line-height: 1.7;
+            max-height: 220px;
+            overflow-y: auto;
+            color: var(--text-dim);
+        }
+        .log-entry { padding: 1px 0; }
+        .log-entry .time { color: #555; }
+        .log-entry .step { color: var(--accent); }
+        .log-entry .action { color: var(--yellow); }
+        .log-entry .reward-good { color: var(--green); }
+        .log-entry .reward-bad { color: var(--red); }
+        .log-entry .info { color: var(--blue); }
+
+        /* Reward bar */
+        .reward-section { margin-bottom: 1.5rem; }
+        .reward-bar-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .reward-label { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); white-space: nowrap; }
+        .reward-track {
+            flex: 1;
+            height: 10px;
+            background: var(--surface2);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+        .reward-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--red), var(--yellow), var(--green));
+            border-radius: 100px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+        .reward-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Info bar */
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .info-item {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+        .info-item span {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* API section */
+        .api-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.8rem;
+        }
+        .api-endpoint:last-child { border-bottom: none; }
+        .method {
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: monospace;
+        }
+        .method-post { background: var(--green-dim); color: var(--green); }
+        .method-get { background: var(--blue-dim); color: var(--blue); }
+        .api-endpoint code { color: var(--text); font-weight: 500; }
+        .api-endpoint .api-desc { color: var(--text-dim); margin-left: auto; font-size: 0.7rem; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 0.75rem;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="hero-content">
+            <h1>🏥 ICU-Guardian</h1>
+            <p>OpenEnv environment for training AI agents to monitor and stabilize critically ill ICU patients.</p>
+            <div class="badge-row">
+                <span class="badge badge-green">● Running</span>
+                <span class="badge badge-blue">OpenEnv v1.0</span>
+                <span class="badge badge-purple">3 Tasks</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Info Bar -->
+        <div class="info-bar" id="infoBar">
+            <div class="info-item">Episode: <span id="episodeId">—</span></div>
+            <div class="info-item">Step: <span id="stepCount">0</span></div>
+            <div class="info-item">Task: <span id="taskName">vital_stabilization</span></div>
+            <div class="info-item">Status: <span id="episodeStatus" style="color: var(--green)">Ready</span></div>
+        </div>
+
+        <!-- Vitals Monitor -->
+        <div class="section-title">📊 Patient Vitals Monitor</div>
+        <div class="vitals-grid" id="vitalsGrid">
+            <div class="vital-card">
+                <div class="status-dot" id="hrDot"></div>
+                <div class="label">Heart Rate</div>
+                <div class="value" id="hrVal">—</div>
+                <div class="unit">bpm (60–100)</div>
+            </div>
+            <div class="vital-card">
+                <div class="status-dot" id="bpDot"></div>
+                <div class="label">Blood Pressure</div>
+                <div class="value" id="bpVal">—/—</div>
+                <div class="unit">mmHg (100–140 / 60–90)</div>
+            </div>
+            <div class="vital-card">
+                <div class="status-dot" id="spo2Dot"></div>
+                <div class="label">SpO₂</div>
+                <div class="value" id="spo2Val">—</div>
+                <div class="unit">% (≥ 95)</div>
+            </div>
+            <div class="vital-card">
+                <div class="status-dot" id="tempDot"></div>
+                <div class="label">Temperature</div>
+                <div class="value" id="tempVal">—</div>
+                <div class="unit">°C (36.0–37.8)</div>
+            </div>
+        </div>
+
+        <!-- Reward -->
+        <div class="reward-section">
+            <div class="reward-bar-container">
+                <div class="reward-label">REWARD</div>
+                <div class="reward-track"><div class="reward-fill" id="rewardFill"></div></div>
+                <div class="reward-value" id="rewardVal">0.00</div>
+            </div>
+        </div>
+
+        <!-- Controls + Log -->
+        <div class="controls-section">
+            <div class="panel">
+                <h3>🎮 Agent Controls</h3>
+                <div class="action-grid">
+                    <button class="action-btn reset-btn" onclick="doReset()">
+                        <span class="icon">🔄</span> Reset Episode
+                        <span class="desc">Start a new patient scenario</span>
+                    </button>
+                    <button class="action-btn" onclick="doStep('adjust_oxygen','increase')">
+                        <span class="icon">🫁</span> ↑ Oxygen
+                        <span class="desc">Increase O₂ support</span>
+                    </button>
+                    <button class="action-btn" onclick="doStep('adjust_oxygen','decrease')">
+                        <span class="icon">🫁</span> ↓ Oxygen
+                        <span class="desc">Decrease O₂ support</span>
+                    </button>
+                    <button class="action-btn" onclick="doStep('administer_meds','vasopressor','low')">
+                        <span class="icon">💉</span> Vasopressor (low)
+                        <span class="desc">Raise blood pressure</span>
+                    </button>
+                    <button class="action-btn" onclick="doStep('administer_meds','antihypertensive','low')">
+                        <span class="icon">💊</span> Anti-HTN (low)
+                        <span class="desc">Lower blood pressure</span>
+                    </button>
+                    <button class="action-btn" onclick="doStep('trigger_code_sepsis')">
+                        <span class="icon">🚨</span> Sepsis Alert
+                        <span class="desc">Trigger emergency protocol</span>
+                    </button>
+                    <button class="action-btn" onclick="doStep('wait')">
+                        <span class="icon">⏳</span> Wait
+                        <span class="desc">Monitor without action</span>
+                    </button>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>📋 Event Log</h3>
+                <div class="log-panel" id="logPanel">
+                    <div class="log-entry"><span class="info">Welcome to ICU-Guardian. Click "Reset Episode" to begin.</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Endpoints -->
+        <div class="section-title">🔌 API Endpoints</div>
+        <div class="api-section">
+            <div class="api-endpoint"><span class="method method-post">POST</span> <code>/reset</code> <span class="api-desc">Start new episode</span></div>
+            <div class="api-endpoint"><span class="method method-post">POST</span> <code>/step</code> <span class="api-desc">Execute clinical action</span></div>
+            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/state</code> <span class="api-desc">Episode metadata</span></div>
+            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/health</code> <span class="api-desc">Health check</span></div>
+            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/schema</code> <span class="api-desc">Action/observation schema</span></div>
+            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/docs</code> <span class="api-desc">Swagger API docs</span></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>🏥 ICU-Guardian — <a href="https://github.com/singhhrishabh/ICU-Guardian">GitHub</a> · Built for the <a href="https://pytorch.org">Meta PyTorch OpenEnv Hackathon</a> · MIT License</p>
+    </div>
+
+    <script>
+        const BASE = window.location.origin;
+
+        function log(msg, cls='info') {
+            const panel = document.getElementById('logPanel');
+            const t = new Date().toLocaleTimeString('en-US', {hour12:false});
+            panel.innerHTML += `<div class="log-entry"><span class="time">[${t}]</span> <span class="${cls}">${msg}</span></div>`;
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        function vitalStatus(val, low, high) {
+            if (val >= low && val <= high) return 'status-safe';
+            const margin = (high - low) * 0.15;
+            if (val >= low - margin && val <= high + margin) return 'status-warning';
+            return 'status-danger';
+        }
+
+        function updateVitals(obs, reward) {
+            document.getElementById('hrVal').textContent = obs.HR;
+            document.getElementById('bpVal').textContent = `${obs.BP_sys}/${obs.BP_dia}`;
+            document.getElementById('spo2Val').textContent = obs.SpO2;
+            document.getElementById('tempVal').textContent = obs.Temp.toFixed(1);
+            document.getElementById('stepCount').textContent = obs.step_number;
+            document.getElementById('taskName').textContent = obs.task_name;
+
+            document.getElementById('hrDot').className = 'status-dot ' + vitalStatus(obs.HR, 60, 100);
+            document.getElementById('bpDot').className = 'status-dot ' + vitalStatus(obs.BP_sys, 100, 140);
+            document.getElementById('spo2Dot').className = 'status-dot ' + vitalStatus(obs.SpO2, 95, 100);
+            document.getElementById('tempDot').className = 'status-dot ' + vitalStatus(obs.Temp, 36.0, 37.8);
+
+            if (reward !== undefined && reward !== null) {
+                document.getElementById('rewardVal').textContent = reward.toFixed(2);
+                document.getElementById('rewardFill').style.width = (reward * 100) + '%';
+            }
+        }
+
+        async function doReset() {
+            log('Resetting environment...', 'info');
+            try {
+                const r = await fetch(BASE + '/reset', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+                const d = await r.json();
+                updateVitals(d.observation, d.reward);
+                document.getElementById('episodeId').textContent = 'New';
+                document.getElementById('episodeStatus').textContent = 'Active';
+                document.getElementById('episodeStatus').style.color = 'var(--green)';
+                log(`✅ Episode started — HR:${d.observation.HR} BP:${d.observation.BP_sys}/${d.observation.BP_dia} SpO2:${d.observation.SpO2}% Temp:${d.observation.Temp}°C`, 'info');
+
+                const s = await fetch(BASE + '/state').then(r => r.json());
+                document.getElementById('episodeId').textContent = s.episode_id;
+            } catch(e) { log('❌ Reset failed: ' + e.message, 'reward-bad'); }
+        }
+
+        async function doStep(action, levelOrDrug, dose) {
+            const body = {action: {action}};
+            if (action === 'adjust_oxygen') body.action.level = levelOrDrug;
+            if (action === 'administer_meds') { body.action.drug = levelOrDrug; body.action.dose = dose || 'low'; }
+
+            const label = action === 'administer_meds' ? `${action}(${levelOrDrug},${dose||'low'})` :
+                           action === 'adjust_oxygen' ? `${action}(${levelOrDrug})` : action;
+
+            log(`→ ${label}`, 'action');
+            try {
+                const r = await fetch(BASE + '/step', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+                const d = await r.json();
+                updateVitals(d.observation, d.reward);
+                const rCls = d.reward >= 0.5 ? 'reward-good' : 'reward-bad';
+                log(`  Step ${d.observation.step_number}: reward=<span class="${rCls}">${d.reward.toFixed(2)}</span> | HR:${d.observation.HR} BP:${d.observation.BP_sys}/${d.observation.BP_dia} SpO2:${d.observation.SpO2}%`, 'step');
+
+                if (d.done) {
+                    log('🏁 Episode finished!', 'info');
+                    document.getElementById('episodeStatus').textContent = 'Done';
+                    document.getElementById('episodeStatus').style.color = 'var(--yellow)';
+                }
+            } catch(e) { log('❌ Step failed: ' + e.message, 'reward-bad'); }
+        }
+    </script>
+</body>
+</html>
