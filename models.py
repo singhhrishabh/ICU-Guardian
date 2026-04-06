@@ -9,15 +9,10 @@ Docker containers, and fall back gracefully for local development.
 from dataclasses import dataclass, field
 from typing import Optional
 
-# Compatibility shim: use OpenEnv base classes if available (Python 3.10+),
-# otherwise use plain object. The Docker container will have Python 3.11.
-try:
-    from openenv_core.env_server.types import Action, Observation, State
-except (ImportError, TypeError):
-    # Fallback for Python < 3.10 or if openenv-core is not installed
-    Action = object
-    Observation = object
-    State = object
+# Base classes for OpenEnv type compatibility
+Action = object
+Observation = object
+State = object
 
 
 @dataclass

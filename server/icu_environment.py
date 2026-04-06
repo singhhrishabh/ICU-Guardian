@@ -12,13 +12,9 @@ import uuid
 import sys
 from typing import Dict, List, Optional
 
-# Compatibility shim for OpenEnv base class
-try:
-    from openenv_core.env_server.interfaces import Environment
-except (ImportError, TypeError):
-    class Environment:
-        """Fallback base class for local development."""
-        pass
+class Environment:
+    """Base class for OpenEnv-style environments."""
+    pass
 
 # Ensure parent directory is in path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
