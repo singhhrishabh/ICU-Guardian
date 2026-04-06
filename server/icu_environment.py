@@ -4,10 +4,10 @@
 """
 ICU-Guardian Environment Implementation.
 
-Implements the OpenEnv Environment base class with:
+Implements the OpenEnv Environment interface with:
 - reset(): Initialize a new patient episode
-- step(action): Apply clinical action, advance simulation, return results  
-- state: Property returning episode metadata
+- step(action): Apply clinical action, advance simulation, return observation
+- state: Property returning episode metadata (State dataclass)
 """
 
 import os
@@ -15,18 +15,12 @@ import sys
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-# Support both in-repo and standalone imports
-try:
-    from openenv.core.env_server.interfaces import Environment
-    from openenv.core.env_server.types import Action, Observation, State
-except ImportError:
-    from openenv_core.env_server.interfaces import Environment
-    from openenv_core.env_server.types import Action, Observation, State
+from dataclasses import dataclass, field
 
-# Ensure parent directory is in path for imports
+# Ensure parent directory is in path for imports  
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import ICUAction, ICUObservation
+from models import ICUAction, ICUObservation, Action, Observation, State
 from server.simulator import ICUSimulator, SAFE_RANGES, TARGETS
 from server.tasks import (
     TASKS,
@@ -37,20 +31,19 @@ from server.tasks import (
 )
 
 
-class ICUEnvironment(Environment):
+class ICUEnvironment:
     """
     ICU Patient Monitoring Environment.
 
     An AI agent monitors a critically ill patient's vital signs and must
-    take clinical actions to stabilize the patient. The environment supports
-    3 tasks of increasing difficulty.
+    take clinical actions to stabilize the patient.
     """
 
     def __init__(self, task_name: Optional[str] = None):
         self._task_name = task_name or os.getenv("ICU_TASK", "vital_stabilization")
         self._task_config: Optional[TaskConfig] = None
         self._simulator: Optional[ICUSimulator] = None
-        self._state = State(episode_id=str(uuid4()), step_count=0)
+        self._state = State(episode_id=str(uuid4())[:8], step_count=0)
         self._done: bool = False
         self._step_vitals: List[Dict] = []
         self._actions_taken: List[Dict] = []
@@ -59,12 +52,7 @@ class ICUEnvironment(Environment):
         self._sepsis_detection_step: Optional[int] = None
         self._last_action_error: Optional[str] = None
 
-    def reset(
-        self,
-        seed: Optional[int] = None,
-        episode_id: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Observation:
+    def reset(self, seed=None, episode_id=None, **kwargs) -> ICUObservation:
         """Initialize a new episode with a fresh patient."""
         if self._task_name not in TASKS:
             self._task_name = "vital_stabilization"
@@ -82,7 +70,6 @@ class ICUEnvironment(Environment):
         self._sepsis_detection_step = None
         self._last_action_error = None
 
-        # Create simulator with task-specific scenario
         self._simulator = ICUSimulator(
             scenario=self._task_config.scenario,
             seed=seed or self._task_config.seed,
@@ -103,25 +90,15 @@ class ICUEnvironment(Environment):
             last_action_error=None,
         )
 
-    def step(
-        self,
-        action: Action,
-        timeout_s: Optional[float] = None,
-        **kwargs: Any,
-    ) -> Observation:
+    def step(self, action, timeout_s=None, **kwargs) -> ICUObservation:
         """Execute a clinical action and advance the simulation."""
-        # Parse the action - may come as ICUAction or generic Action
+        # Parse action - may come as ICUAction or generic Action
         if isinstance(action, ICUAction):
             icu_action = action
+        elif hasattr(action, 'action'):
+            icu_action = action
         else:
-            # Try to convert from generic action dict/object
-            action_data = action.model_dump() if hasattr(action, 'model_dump') else {}
-            icu_action = ICUAction(
-                action=action_data.get("action", "wait"),
-                drug=action_data.get("drug"),
-                dose=action_data.get("dose"),
-                level=action_data.get("level"),
-            )
+            icu_action = ICUAction(action="wait")
 
         if self._done:
             vitals = self._simulator.get_vitals()
@@ -129,33 +106,28 @@ class ICUEnvironment(Environment):
 
         self._state.step_count += 1
 
-        # Record the action
         action_dict = {
-            "action": icu_action.action,
-            "drug": icu_action.drug,
-            "dose": icu_action.dose,
-            "level": icu_action.level,
+            "action": getattr(icu_action, 'action', 'wait'),
+            "drug": getattr(icu_action, 'drug', None),
+            "dose": getattr(icu_action, 'dose', None),
+            "level": getattr(icu_action, 'level', None),
             "step": self._state.step_count,
         }
         self._actions_taken.append(action_dict)
 
-        # Apply the action
         error = self._simulator.apply_action(
-            action=icu_action.action,
-            drug=icu_action.drug,
-            dose=icu_action.dose,
-            level=icu_action.level,
+            action=action_dict["action"],
+            drug=action_dict["drug"],
+            dose=action_dict["dose"],
+            level=action_dict["level"],
         )
         self._last_action_error = error
 
-        # Track sepsis detection timing
-        if icu_action.action == "trigger_code_sepsis" and self._sepsis_detection_step is None:
+        if action_dict["action"] == "trigger_code_sepsis" and self._sepsis_detection_step is None:
             self._sepsis_detection_step = self._state.step_count
 
-        # Advance the simulation
         self._simulator.advance()
 
-        # Record vitals after step
         vitals = self._simulator.get_vitals()
         vitals_dict = {
             "HR": vitals.HR,
@@ -166,23 +138,12 @@ class ICUEnvironment(Environment):
         }
         self._step_vitals.append(vitals_dict)
 
-        # Compute reward
         reward = self._compute_reward(icu_action, vitals_dict, error)
         self._cumulative_reward += reward
 
-        # Check done conditions
         self._done = self._check_done()
 
         return self._make_observation(vitals, reward, self._done)
-
-    async def step_async(
-        self,
-        action: Action,
-        timeout_s: Optional[float] = None,
-        **kwargs: Any,
-    ) -> Observation:
-        """Async step used by the WebSocket handler."""
-        return self.step(action, timeout_s=timeout_s, **kwargs)
 
     @property
     def state(self) -> State:
@@ -224,11 +185,9 @@ class ICUEnvironment(Environment):
             )
         return 0.0
 
-    def _compute_reward(self, action: ICUAction, vitals_dict: Dict,
-                        error: Optional[str]) -> float:
+    def _compute_reward(self, action, vitals_dict, error):
         """Dense reward in [0.0, 1.0] range."""
         reward = 0.0
-
         current_safe = self._simulator.safe_zone_fraction()
         reward += current_safe * 0.6
 
@@ -243,7 +202,8 @@ class ICUEnvironment(Environment):
         if error:
             reward -= 0.05
 
-        if action.action == "trigger_code_sepsis":
+        action_name = getattr(action, 'action', 'wait')
+        if action_name == "trigger_code_sepsis":
             if self._task_name != "sepsis_detection":
                 reward -= 0.3
             elif not self._simulator.patient.sepsis_active:
@@ -251,32 +211,33 @@ class ICUEnvironment(Environment):
 
         return max(0.0, min(1.0, reward))
 
-    def _evaluate_action_quality(self, action: ICUAction, vitals: Dict) -> float:
+    def _evaluate_action_quality(self, action, vitals):
         """Evaluate how appropriate the chosen action is."""
         quality = 0.0
+        action_name = getattr(action, 'action', 'wait')
+        drug = getattr(action, 'drug', None)
+        level = getattr(action, 'level', None)
 
-        if action.action == "wait":
+        if action_name == "wait":
             safe_frac = self._simulator.safe_zone_fraction()
             quality = 0.8 if safe_frac >= 0.8 else 0.3
-
-        elif action.action == "administer_meds":
-            if action.drug == "vasopressor":
+        elif action_name == "administer_meds":
+            if drug == "vasopressor":
                 if vitals["BP_sys"] < SAFE_RANGES["BP_sys"][0]:
                     quality = 1.0
                 elif vitals["BP_sys"] < TARGETS["BP_sys"]:
                     quality = 0.6
                 else:
                     quality = 0.1
-            elif action.drug == "antihypertensive":
+            elif drug == "antihypertensive":
                 if vitals["BP_sys"] > SAFE_RANGES["BP_sys"][1]:
                     quality = 1.0
                 elif vitals["BP_sys"] > TARGETS["BP_sys"]:
                     quality = 0.6
                 else:
                     quality = 0.1
-
-        elif action.action == "adjust_oxygen":
-            if action.level == "increase":
+        elif action_name == "adjust_oxygen":
+            if level == "increase":
                 if vitals["SpO2"] < SAFE_RANGES["SpO2"][0]:
                     quality = 1.0
                 elif vitals["SpO2"] < TARGETS["SpO2"]:
@@ -288,16 +249,13 @@ class ICUEnvironment(Environment):
                     quality = 0.7
                 else:
                     quality = 0.2
-
-        elif action.action == "trigger_code_sepsis":
+        elif action_name == "trigger_code_sepsis":
             if self._simulator.patient.sepsis_active and self._simulator.patient.sepsis_stage >= 1:
                 quality = 1.0
-            else:
-                quality = 0.0
 
         return quality
 
-    def _check_done(self) -> bool:
+    def _check_done(self):
         """Check if the episode should end."""
         if self._state.step_count >= self._task_config.max_steps:
             return True
