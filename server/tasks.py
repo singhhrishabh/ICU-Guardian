@@ -92,16 +92,11 @@ def grade_vital_stabilization(
 ) -> float:
     """
     Grade the Vital Stabilization (Easy) task.
-
-    Score = weighted combination of:
-    - 60%: Fraction of steps where all vitals are in safe zone
-    - 25%: Average proximity to targets in the final 3 steps
-    - 15%: Efficiency bonus (fewer steps = better)
-
+    ...
     Returns score in [0.0, 1.0]
     """
     if patient_crashed or total_steps == 0:
-        return 0.0
+        return 0.0001
 
     # Component 1: Steps in safe zone (60%)
     safe_steps = 0
@@ -130,7 +125,8 @@ def grade_vital_stabilization(
     efficiency = max(0.0, 1.0 - (total_steps / max_steps))
 
     score = 0.60 * safe_fraction + 0.25 * proximity_score + 0.15 * efficiency
-    return round(min(max(score, 0.0), 1.0), 4)
+    # STRICTLY BETWEEN 0 and 1
+    return round(min(max(score, 0.0001), 0.9999), 4)
 
 
 def grade_bp_management(
@@ -142,17 +138,11 @@ def grade_bp_management(
 ) -> float:
     """
     Grade the BP Management (Medium) task.
-
-    Score = weighted combination of:
-    - 45%: BP stability (low variance in BP over time)
-    - 30%: Fraction of steps with BP in safe range
-    - 15%: Overcorrection penalty (BP swinging past target)
-    - 10%: Medication efficiency (fewer meds = better)
-
+    ...
     Returns score in [0.0, 1.0]
     """
     if patient_crashed or total_steps == 0:
-        return 0.0
+        return 0.0001
 
     # Component 1: BP stability (45%)
     bp_values = [v["BP_sys"] for v in step_vitals]
@@ -188,7 +178,8 @@ def grade_bp_management(
 
     score = (0.45 * stability_score + 0.30 * bp_safe_fraction +
              0.15 * overcorrection_penalty + 0.10 * med_efficiency)
-    return round(min(max(score, 0.0), 1.0), 4)
+    # STRICTLY BETWEEN 0 and 1
+    return round(min(max(score, 0.0001), 0.9999), 4)
 
 
 def grade_sepsis_detection(
@@ -262,4 +253,5 @@ def grade_sepsis_detection(
 
     score = (0.40 * detection_score + 0.25 * timing_score +
              0.20 * vital_score + 0.15 * false_alarm_score)
-    return round(min(max(score, 0.0), 1.0), 4)
+    # STRICTLY BETWEEN 0 and 1
+    return round(min(max(score, 0.0001), 0.9999), 4)

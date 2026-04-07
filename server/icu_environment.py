@@ -78,7 +78,7 @@ class ICUEnvironment:
         vitals = self._simulator.get_vitals()
         return ICUObservation(
             done=False,
-            reward=0.0,
+            reward=0.0001,
             HR=vitals.HR,
             BP_sys=vitals.BP_sys,
             BP_dia=vitals.BP_dia,
@@ -153,19 +153,20 @@ class ICUEnvironment:
     def get_score(self) -> float:
         """Compute the final graded score. Returns score in [0.0, 1.0]."""
         if not self._task_config or not self._simulator:
-            return 0.0
+            return 0.0001
 
         patient_crashed = self._simulator.is_patient_critical()
 
+        raw_score = 0.0
         if self._task_name == "vital_stabilization":
-            return grade_vital_stabilization(
+            raw_score = grade_vital_stabilization(
                 step_vitals=self._step_vitals,
                 total_steps=self._state.step_count,
                 max_steps=self._task_config.max_steps,
                 patient_crashed=patient_crashed,
             )
         elif self._task_name == "bp_management":
-            return grade_bp_management(
+            raw_score = grade_bp_management(
                 step_vitals=self._step_vitals,
                 actions_taken=self._actions_taken,
                 total_steps=self._state.step_count,
@@ -173,7 +174,7 @@ class ICUEnvironment:
                 patient_crashed=patient_crashed,
             )
         elif self._task_name == "sepsis_detection":
-            return grade_sepsis_detection(
+            raw_score = grade_sepsis_detection(
                 step_vitals=self._step_vitals,
                 actions_taken=self._actions_taken,
                 total_steps=self._state.step_count,
@@ -183,7 +184,9 @@ class ICUEnvironment:
                 sepsis_detection_step=self._sepsis_detection_step,
                 patient_crashed=patient_crashed,
             )
-        return 0.0
+        
+        # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
+        return max(0.0001, min(0.9999, raw_score))
 
     def _compute_reward(self, action, vitals_dict, error):
         """Dense reward in [0.0, 1.0] range."""
@@ -209,7 +212,8 @@ class ICUEnvironment:
             elif not self._simulator.patient.sepsis_active:
                 reward -= 0.3
 
-        return max(0.0, min(1.0, reward))
+        # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
+        return max(0.0001, min(0.9999, reward))
 
     def _evaluate_action_quality(self, action, vitals):
         """Evaluate how appropriate the chosen action is."""
