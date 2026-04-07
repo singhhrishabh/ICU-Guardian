@@ -1,3 +1,14 @@
+---
+title: Icu Guardian
+emoji: 🏥
+colorFrom: red
+colorTo: blue
+sdk: docker
+app_port: 8000
+pinned: false
+license: mit
+---
+
 # 🏥 ICU-Guardian: OpenEnv Environment for Critical Care AI
 
 [![OpenEnv](https://img.shields.io/badge/OpenEnv-v1.0+-blue)](https://github.com/meta-pytorch/OpenEnv)
