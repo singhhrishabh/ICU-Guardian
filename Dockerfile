@@ -2,14 +2,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Python dependencies (minimal — no openenv-core needed)
+# Install Python dependencies (including inference requirements)
 RUN pip install --no-cache-dir \
     "fastapi>=0.104.0" \
     "uvicorn>=0.24.0" \
-    "pydantic>=2.0"
+    "pydantic>=2.0" \
+    "openai>=1.0.0" \
+    "httpx>=0.24.0" \
+    "openenv-core>=0.2.0"
 
 # Copy application code
 COPY models.py ./models.py
+COPY inference.py ./inference.py
 COPY openenv.yaml ./openenv.yaml
 COPY server/ ./server/
 
