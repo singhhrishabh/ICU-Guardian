@@ -3,509 +3,567 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICU-Guardian — OpenEnv Environment</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>ICU-Guardian — Critical Care AI Environment</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg: #0f1117;
-            --surface: #1a1d27;
-            --surface2: #242736;
-            --border: #2d3148;
-            --text: #e4e6f0;
-            --text-dim: #8b8fa3;
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.2);
-            --green: #22c55e;
-            --green-dim: rgba(34, 197, 94, 0.15);
-            --red: #ef4444;
-            --red-dim: rgba(239, 68, 68, 0.15);
-            --yellow: #eab308;
-            --yellow-dim: rgba(234, 179, 8, 0.15);
-            --blue: #3b82f6;
-            --blue-dim: rgba(59, 130, 246, 0.15);
-            --pink: #ec4899;
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#050a0e;--surface:rgba(8,24,32,0.85);--surface2:rgba(12,35,48,0.7);
+            --border:rgba(0,200,180,0.12);--border-glow:rgba(0,200,180,0.25);
+            --text:#c8e6ec;--text-dim:#5a8a96;--text-bright:#e0f7fa;
+            --cyan:#00e5cc;--cyan-dim:rgba(0,229,204,0.1);--cyan-glow:rgba(0,229,204,0.3);
+            --red:#ff3d5a;--red-dim:rgba(255,61,90,0.12);--red-glow:rgba(255,61,90,0.4);
+            --green:#00e676;--green-dim:rgba(0,230,118,0.12);
+            --amber:#ffab00;--amber-dim:rgba(255,171,0,0.12);
+            --blue:#40c4ff;--blue-dim:rgba(64,196,255,0.12);
+            --purple:#b388ff;
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-        .hero {
-            background: linear-gradient(135deg, #1e1b4b 0%, #0f1117 50%, #1a0e2e 100%);
-            border-bottom: 1px solid var(--border);
-            padding: 2rem 2rem 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -100px;
-            right: -100px;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .hero-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-        }
-        .hero h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #c7d2fe, #6366f1, #a78bfa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.4rem;
-        }
-        .hero p {
-            color: var(--text-dim);
-            font-size: 0.95rem;
-            max-width: 600px;
-        }
-        .badge-row {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-            flex-wrap: wrap;
-        }
-        .badge {
-            padding: 0.25rem 0.7rem;
-            border-radius: 100px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .badge-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
-        .badge-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
-        .badge-purple { background: var(--accent-glow); color: #a78bfa; border: 1px solid rgba(99,102,241,0.3); }
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
-        .main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; }
+        /* Animated grid background */
+        body::before{
+            content:'';position:fixed;inset:0;
+            background:
+                linear-gradient(rgba(0,229,204,0.03) 1px,transparent 1px),
+                linear-gradient(90deg,rgba(0,229,204,0.03) 1px,transparent 1px);
+            background-size:40px 40px;
+            animation:gridScroll 20s linear infinite;
+            pointer-events:none;z-index:0;
+        }
+        @keyframes gridScroll{0%{transform:translateY(0)}100%{transform:translateY(40px)}}
 
-        /* Vitals Monitor */
-        .section-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-dim);
-            margin-bottom: 0.75rem;
+        /* ECG line across top */
+        .ecg-strip{
+            position:fixed;top:0;left:0;width:100%;height:3px;z-index:100;overflow:hidden;
         }
-        .vitals-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
+        .ecg-line{
+            width:200%;height:100%;
+            background:linear-gradient(90deg,transparent 0%,var(--cyan) 30%,var(--green) 50%,var(--cyan) 70%,transparent 100%);
+            animation:ecgSweep 3s linear infinite;
         }
-        .vital-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem 1.2rem;
-            position: relative;
-            overflow: hidden;
-            transition: border-color 0.3s, transform 0.2s;
-        }
-        .vital-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-        .vital-card .label {
-            font-size: 0.7rem;
-            font-weight: 500;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .vital-card .value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin: 0.15rem 0;
-            font-variant-numeric: tabular-nums;
-        }
-        .vital-card .unit {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-        }
-        .vital-card .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-        }
-        .status-safe { background: var(--green); box-shadow: 0 0 8px var(--green); }
-        .status-warning { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
-        .status-danger { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1.5s infinite; }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
+        @keyframes ecgSweep{0%{transform:translateX(-50%)}100%{transform:translateX(0%)}}
 
-        /* Controls */
-        .controls-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
+        /* Hero */
+        .hero{
+            position:relative;padding:2.5rem 2rem 2rem;
+            background:linear-gradient(180deg,rgba(0,40,50,0.6) 0%,var(--bg) 100%);
+            border-bottom:1px solid var(--border);
+            z-index:1;
         }
-        @media (max-width: 768px) { .controls-section { grid-template-columns: 1fr; } }
+        .hero::after{
+            content:'';position:absolute;top:0;right:0;width:500px;height:500px;
+            background:radial-gradient(circle at 80% 20%,rgba(0,229,204,0.06),transparent 60%);
+            pointer-events:none;
+        }
+        .hero-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:1.5rem;position:relative}
+        .hero-icon{
+            width:64px;height:64px;border-radius:16px;
+            background:linear-gradient(135deg,rgba(0,229,204,0.15),rgba(0,229,204,0.05));
+            border:1px solid var(--border-glow);
+            display:flex;align-items:center;justify-content:center;font-size:2rem;
+            box-shadow:0 0 30px rgba(0,229,204,0.1);
+            flex-shrink:0;
+        }
+        .hero-text h1{
+            font-size:1.75rem;font-weight:800;letter-spacing:-0.5px;
+            background:linear-gradient(135deg,var(--cyan),var(--green),var(--blue));
+            -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+        }
+        .hero-text p{color:var(--text-dim);font-size:0.85rem;margin-top:0.2rem}
+        .hero-badges{display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap}
+        .badge{
+            padding:0.2rem 0.6rem;border-radius:100px;font-size:0.6rem;font-weight:700;
+            text-transform:uppercase;letter-spacing:0.8px;
+        }
+        .badge-live{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,0.3);animation:livePulse 2s ease infinite}
+        .badge-env{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(64,196,255,0.3)}
+        .badge-task{background:var(--cyan-dim);color:var(--cyan);border:1px solid rgba(0,229,204,0.3)}
+        @keyframes livePulse{0%,100%{opacity:1}50%{opacity:0.6}}
 
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.25rem;
-        }
-        .panel h3 {
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .action-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-        .action-btn {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 0.6rem 0.8rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.75rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            text-align: left;
-        }
-        .action-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.1); }
-        .action-btn:active { transform: scale(0.97); }
-        .action-btn .icon { font-size: 1rem; margin-right: 0.3rem; }
-        .action-btn .desc { display: block; font-size: 0.65rem; color: var(--text-dim); margin-top: 2px; }
-        .action-btn.reset-btn { background: var(--accent-glow); border-color: rgba(99,102,241,0.4); grid-column: span 2; text-align: center; }
-        .action-btn.reset-btn:hover { background: rgba(99,102,241,0.2); }
+        /* Main layout */
+        .main{max-width:1280px;margin:0 auto;padding:1.5rem 2rem;position:relative;z-index:1}
 
-        /* Log */
-        .log-panel {
-            background: #0d0f14;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.75rem;
-            font-family: 'Menlo', 'Fira Code', monospace;
-            font-size: 0.72rem;
-            line-height: 1.7;
-            max-height: 220px;
-            overflow-y: auto;
-            color: var(--text-dim);
+        /* Patient header bar */
+        .patient-bar{
+            display:flex;align-items:center;gap:1rem;
+            padding:0.75rem 1.25rem;
+            background:var(--surface);border:1px solid var(--border);border-radius:12px;
+            margin-bottom:1.25rem;flex-wrap:wrap;
+            backdrop-filter:blur(12px);
         }
-        .log-entry { padding: 1px 0; }
-        .log-entry .time { color: #555; }
-        .log-entry .step { color: var(--accent); }
-        .log-entry .action { color: var(--yellow); }
-        .log-entry .reward-good { color: var(--green); }
-        .log-entry .reward-bad { color: var(--red); }
-        .log-entry .info { color: var(--blue); }
+        .patient-id{
+            display:flex;align-items:center;gap:0.5rem;
+            font-family:'JetBrains Mono',monospace;font-size:0.8rem;
+        }
+        .patient-id .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:livePulse 1.5s ease infinite}
+        .patient-meta{font-size:0.75rem;color:var(--text-dim)}
+        .patient-meta span{color:var(--text-bright);font-weight:600}
+        .patient-status{
+            margin-left:auto;padding:0.25rem 0.75rem;border-radius:100px;
+            font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+        }
+        .status-ready{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(64,196,255,0.3)}
+        .status-active{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
+        .status-critical{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,61,90,0.3);animation:livePulse 1s ease infinite}
+        .status-done{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(255,171,0,0.3)}
 
-        /* Reward bar */
-        .reward-section { margin-bottom: 1.5rem; }
-        .reward-bar-container {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        /* Section headers */
+        .sec-header{
+            font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+            color:var(--text-dim);margin-bottom:0.6rem;
+            display:flex;align-items:center;gap:0.5rem;
         }
-        .reward-label { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); white-space: nowrap; }
-        .reward-track {
-            flex: 1;
-            height: 10px;
-            background: var(--surface2);
-            border-radius: 100px;
-            overflow: hidden;
+        .sec-header::after{content:'';flex:1;height:1px;background:var(--border)}
+
+        /* Vitals grid */
+        .vitals-grid{
+            display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:1.25rem;
         }
-        .reward-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--red), var(--yellow), var(--green));
-            border-radius: 100px;
-            transition: width 0.5s ease;
-            width: 0%;
+        @media(max-width:900px){.vitals-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(max-width:600px){.vitals-grid{grid-template-columns:repeat(2,1fr)}}
+
+        .vital-card{
+            background:var(--surface);border:1px solid var(--border);border-radius:14px;
+            padding:0.9rem 1rem;position:relative;overflow:hidden;
+            backdrop-filter:blur(12px);
+            transition:border-color 0.3s,box-shadow 0.3s,transform 0.2s;
         }
-        .reward-value {
-            font-size: 1.4rem;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-            min-width: 60px;
-            text-align: right;
+        .vital-card:hover{transform:translateY(-2px);border-color:var(--border-glow);box-shadow:0 8px 30px rgba(0,0,0,0.3)}
+        .vital-card .v-icon{font-size:1.1rem;margin-bottom:0.15rem}
+        .vital-card .v-label{font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim)}
+        .vital-card .v-value{font-size:2.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;margin:0.1rem 0;line-height:1}
+        .vital-card .v-unit{font-size:0.65rem;color:var(--text-dim);font-weight:500}
+        .vital-card .v-range{
+            margin-top:0.4rem;height:3px;border-radius:100px;overflow:hidden;
+            background:rgba(255,255,255,0.05);
+        }
+        .vital-card .v-range-fill{height:100%;border-radius:100px;transition:width 0.6s ease,background 0.6s ease}
+
+        /* ECG mini animation in HR card */
+        .ecg-mini{
+            position:absolute;bottom:0;right:0;width:80px;height:30px;opacity:0.15;
+        }
+        .ecg-mini svg{width:100%;height:100%}
+        .ecg-mini path{stroke:var(--cyan);stroke-width:1.5;fill:none;animation:ecgDraw 1.2s linear infinite}
+        @keyframes ecgDraw{0%{stroke-dashoffset:200}100%{stroke-dashoffset:0}}
+
+        .v-safe .v-value{color:var(--green)}
+        .v-safe .v-range-fill{background:var(--green)}
+        .v-warn .v-value{color:var(--amber)}
+        .v-warn .v-range-fill{background:var(--amber)}
+        .v-danger .v-value{color:var(--red)}
+        .v-danger .v-range-fill{background:var(--red);animation:dangerFlash 1.2s ease infinite}
+        .v-danger{border-color:rgba(255,61,90,0.3);box-shadow:0 0 20px rgba(255,61,90,0.08)}
+        @keyframes dangerFlash{0%,100%{opacity:1}50%{opacity:0.5}}
+
+        /* Score & Reward */
+        .score-section{
+            display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem;
+        }
+        @media(max-width:768px){.score-section{grid-template-columns:1fr}}
+        .score-card{
+            background:var(--surface);border:1px solid var(--border);border-radius:14px;
+            padding:1rem 1.25rem;backdrop-filter:blur(12px);display:flex;align-items:center;gap:1.25rem;
+        }
+        .score-ring{
+            width:56px;height:56px;border-radius:50%;position:relative;flex-shrink:0;
+        }
+        .score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+        .score-ring circle{fill:none;stroke-width:4;stroke-linecap:round}
+        .score-ring .ring-bg{stroke:rgba(255,255,255,0.06)}
+        .score-ring .ring-fg{transition:stroke-dashoffset 0.8s ease,stroke 0.3s}
+        .score-ring .ring-val{
+            position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+            font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
+        }
+        .score-info .score-label{font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim)}
+        .score-info .score-desc{font-size:0.75rem;color:var(--text);margin-top:0.15rem}
+
+        /* Trend bar */
+        .trend-bar{
+            background:var(--surface);border:1px solid var(--border);border-radius:12px;
+            padding:0.65rem 1rem;margin-bottom:1.25rem;backdrop-filter:blur(12px);
+            font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);
+            display:flex;align-items:center;gap:0.5rem;
+        }
+        .trend-bar .trend-icon{color:var(--cyan)}
+        .trend-bar .trend-text{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+        /* Two-column controls */
+        .controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem}
+        @media(max-width:768px){.controls-grid{grid-template-columns:1fr}}
+
+        .panel{
+            background:var(--surface);border:1px solid var(--border);border-radius:14px;
+            padding:1rem 1.25rem;backdrop-filter:blur(12px);
+        }
+        .panel-title{
+            font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+            color:var(--text-dim);margin-bottom:0.75rem;display:flex;align-items:center;gap:0.4rem;
         }
 
-        /* Info bar */
-        .info-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 1.25rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 0.5rem;
+        /* Action buttons */
+        .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
+        .act-btn{
+            background:rgba(255,255,255,0.03);border:1px solid var(--border);
+            color:var(--text);padding:0.65rem 0.75rem;border-radius:10px;
+            cursor:pointer;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:500;
+            transition:all 0.2s;text-align:left;position:relative;overflow:hidden;
         }
-        .info-item {
-            font-size: 0.75rem;
-            color: var(--text-dim);
+        .act-btn::before{
+            content:'';position:absolute;inset:0;
+            background:linear-gradient(135deg,transparent,rgba(0,229,204,0.05));
+            opacity:0;transition:opacity 0.3s;
         }
-        .info-item span {
-            color: var(--text);
-            font-weight: 600;
-        }
+        .act-btn:hover::before{opacity:1}
+        .act-btn:hover{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,229,204,0.08);transform:translateY(-1px)}
+        .act-btn:active{transform:scale(0.97)}
+        .act-btn .act-icon{font-size:1.1rem}
+        .act-btn .act-name{font-weight:600;margin-top:0.1rem}
+        .act-btn .act-desc{font-size:0.6rem;color:var(--text-dim);margin-top:1px}
 
-        /* API section */
-        .api-section {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.25rem;
-            margin-bottom: 1.5rem;
+        .act-btn.act-reset{
+            grid-column:span 2;text-align:center;
+            background:linear-gradient(135deg,rgba(0,229,204,0.08),rgba(0,230,118,0.05));
+            border-color:rgba(0,229,204,0.2);
         }
-        .api-endpoint {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.8rem;
+        .act-btn.act-reset:hover{border-color:var(--cyan);background:linear-gradient(135deg,rgba(0,229,204,0.15),rgba(0,230,118,0.08))}
+        .act-btn.act-emergency{border-color:rgba(255,61,90,0.2);background:rgba(255,61,90,0.04)}
+        .act-btn.act-emergency:hover{border-color:var(--red);box-shadow:0 0 15px rgba(255,61,90,0.1)}
+
+        /* Event log */
+        .log-area{
+            background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:10px;
+            padding:0.6rem 0.75rem;font-family:'JetBrains Mono',monospace;font-size:0.68rem;
+            line-height:1.8;max-height:260px;overflow-y:auto;color:var(--text-dim);
         }
-        .api-endpoint:last-child { border-bottom: none; }
-        .method {
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            font-family: monospace;
+        .log-area::-webkit-scrollbar{width:4px}
+        .log-area::-webkit-scrollbar-thumb{background:var(--border-glow);border-radius:2px}
+        .l-time{color:#3a5a64}.l-info{color:var(--blue)}.l-action{color:var(--amber)}
+        .l-step{color:var(--cyan)}.l-good{color:var(--green)}.l-bad{color:var(--red)}.l-system{color:var(--purple)}
+
+        /* API reference */
+        .api-section{
+            background:var(--surface);border:1px solid var(--border);border-radius:14px;
+            padding:1rem 1.25rem;margin-bottom:1.25rem;backdrop-filter:blur(12px);
         }
-        .method-post { background: var(--green-dim); color: var(--green); }
-        .method-get { background: var(--blue-dim); color: var(--blue); }
-        .api-endpoint code { color: var(--text); font-weight: 500; }
-        .api-endpoint .api-desc { color: var(--text-dim); margin-left: auto; font-size: 0.7rem; }
+        .api-row{
+            display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;
+            border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.78rem;
+        }
+        .api-row:last-child{border-bottom:none}
+        .api-method{
+            padding:0.12rem 0.45rem;border-radius:4px;font-size:0.6rem;
+            font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;
+        }
+        .m-post{background:var(--green-dim);color:var(--green)}.m-get{background:var(--blue-dim);color:var(--blue)}
+        .api-row code{color:var(--text-bright);font-family:'JetBrains Mono',monospace;font-weight:500;font-size:0.75rem}
+        .api-row .api-d{color:var(--text-dim);margin-left:auto;font-size:0.68rem}
 
         /* Footer */
-        .footer {
-            text-align: center;
-            padding: 1.5rem;
-            border-top: 1px solid var(--border);
-            color: var(--text-dim);
-            font-size: 0.75rem;
+        .footer{
+            text-align:center;padding:1.5rem;border-top:1px solid var(--border);
+            color:var(--text-dim);font-size:0.7rem;position:relative;z-index:1;
         }
-        .footer a { color: var(--accent); text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
+        .footer a{color:var(--cyan);text-decoration:none}
+        .footer a:hover{text-decoration:underline}
+        .footer .med-icons{font-size:1.2rem;letter-spacing:0.3rem;margin-bottom:0.5rem;opacity:0.4}
     </style>
 </head>
 <body>
-    <div class="hero">
-        <div class="hero-content">
-            <h1>🏥 ICU-Guardian</h1>
-            <p>OpenEnv environment for training AI agents to monitor and stabilize critically ill ICU patients.</p>
-            <div class="badge-row">
-                <span class="badge badge-green">● Running</span>
-                <span class="badge badge-blue">OpenEnv v1.0</span>
-                <span class="badge badge-purple">3 Tasks</span>
+
+<!-- ECG strip -->
+<div class="ecg-strip"><div class="ecg-line"></div></div>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="hero-inner">
+        <div class="hero-icon">🏥</div>
+        <div class="hero-text">
+            <h1>ICU-Guardian</h1>
+            <p>AI-Powered Critical Care Patient Monitoring Environment</p>
+            <div class="hero-badges">
+                <span class="badge badge-live">● Live</span>
+                <span class="badge badge-env">OpenEnv v1.0</span>
+                <span class="badge badge-task">3 Clinical Tasks</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <!-- Patient ID bar -->
+    <div class="patient-bar">
+        <div class="patient-id"><span class="dot" id="liveDot"></span> <span>PATIENT</span> <span style="color:var(--text-bright)" id="patientId">—</span></div>
+        <div class="patient-meta">Episode: <span id="episodeId">—</span></div>
+        <div class="patient-meta">Step: <span id="stepNum">0</span> / <span id="maxSteps">15</span></div>
+        <div class="patient-meta">Protocol: <span id="taskLabel">Vital Stabilization</span></div>
+        <div class="patient-status status-ready" id="statusBadge">STANDBY</div>
+    </div>
+
+    <!-- Vitals -->
+    <div class="sec-header"><span>Vital Signs Monitor</span></div>
+    <div class="vitals-grid">
+        <div class="vital-card" id="cardHR">
+            <div class="v-icon">♥</div>
+            <div class="v-label">Heart Rate</div>
+            <div class="v-value" id="valHR">—</div>
+            <div class="v-unit">bpm</div>
+            <div class="v-range"><div class="v-range-fill" id="barHR" style="width:0%"></div></div>
+            <div class="ecg-mini"><svg viewBox="0 0 80 30"><path d="M0,15 L10,15 L15,5 L20,25 L25,10 L30,15 L40,15 L50,15 L55,5 L60,25 L65,10 L70,15 L80,15" stroke-dasharray="200" /></svg></div>
+        </div>
+        <div class="vital-card" id="cardBP">
+            <div class="v-icon">🩸</div>
+            <div class="v-label">Blood Pressure</div>
+            <div class="v-value" id="valBP">—/—</div>
+            <div class="v-unit">mmHg (Sys/Dia)</div>
+            <div class="v-range"><div class="v-range-fill" id="barBP" style="width:0%"></div></div>
+        </div>
+        <div class="vital-card" id="cardSPO2">
+            <div class="v-icon">🫁</div>
+            <div class="v-label">SpO₂</div>
+            <div class="v-value" id="valSPO2">—</div>
+            <div class="v-unit">% Oxygen Sat</div>
+            <div class="v-range"><div class="v-range-fill" id="barSPO2" style="width:0%"></div></div>
+        </div>
+        <div class="vital-card" id="cardTemp">
+            <div class="v-icon">🌡️</div>
+            <div class="v-label">Temperature</div>
+            <div class="v-value" id="valTemp">—</div>
+            <div class="v-unit">°C</div>
+            <div class="v-range"><div class="v-range-fill" id="barTemp" style="width:0%"></div></div>
+        </div>
+        <div class="vital-card" id="cardO2">
+            <div class="v-icon">💨</div>
+            <div class="v-label">O₂ Support</div>
+            <div class="v-value" id="valO2">—</div>
+            <div class="v-unit">Level</div>
+            <div class="v-range"><div class="v-range-fill" id="barO2" style="width:0%"></div></div>
+        </div>
+    </div>
+
+    <!-- Score rings + Trend -->
+    <div class="score-section">
+        <div class="score-card">
+            <div class="score-ring" id="rewardRing">
+                <svg viewBox="0 0 56 56"><circle class="ring-bg" cx="28" cy="28" r="24"/><circle class="ring-fg" cx="28" cy="28" r="24" stroke="var(--cyan)" stroke-dasharray="150.8" stroke-dashoffset="150.8" id="rewardArc"/></svg>
+                <div class="ring-val" id="rewardPct">0%</div>
+            </div>
+            <div class="score-info">
+                <div class="score-label">Step Reward</div>
+                <div class="score-desc" id="rewardDesc">Waiting for first action…</div>
+            </div>
+        </div>
+        <div class="score-card">
+            <div class="score-ring" id="safeRing">
+                <svg viewBox="0 0 56 56"><circle class="ring-bg" cx="28" cy="28" r="24"/><circle class="ring-fg" cx="28" cy="28" r="24" stroke="var(--green)" stroke-dasharray="150.8" stroke-dashoffset="150.8" id="safeArc"/></svg>
+                <div class="ring-val" id="safePct">0%</div>
+            </div>
+            <div class="score-info">
+                <div class="score-label">Vitals in Safe Range</div>
+                <div class="score-desc" id="safeDesc">No data yet</div>
             </div>
         </div>
     </div>
 
-    <div class="main">
-        <!-- Info Bar -->
-        <div class="info-bar" id="infoBar">
-            <div class="info-item">Episode: <span id="episodeId">—</span></div>
-            <div class="info-item">Step: <span id="stepCount">0</span></div>
-            <div class="info-item">Task: <span id="taskName">vital_stabilization</span></div>
-            <div class="info-item">Status: <span id="episodeStatus" style="color: var(--green)">Ready</span></div>
-        </div>
+    <!-- Trend -->
+    <div class="trend-bar">
+        <span class="trend-icon">📈</span>
+        <span class="trend-text" id="trendText">Awaiting patient admission…</span>
+    </div>
 
-        <!-- Vitals Monitor -->
-        <div class="section-title">📊 Patient Vitals Monitor</div>
-        <div class="vitals-grid" id="vitalsGrid">
-            <div class="vital-card">
-                <div class="status-dot" id="hrDot"></div>
-                <div class="label">Heart Rate</div>
-                <div class="value" id="hrVal">—</div>
-                <div class="unit">bpm (60–100)</div>
-            </div>
-            <div class="vital-card">
-                <div class="status-dot" id="bpDot"></div>
-                <div class="label">Blood Pressure</div>
-                <div class="value" id="bpVal">—/—</div>
-                <div class="unit">mmHg (100–140 / 60–90)</div>
-            </div>
-            <div class="vital-card">
-                <div class="status-dot" id="spo2Dot"></div>
-                <div class="label">SpO₂</div>
-                <div class="value" id="spo2Val">—</div>
-                <div class="unit">% (≥ 95)</div>
-            </div>
-            <div class="vital-card">
-                <div class="status-dot" id="tempDot"></div>
-                <div class="label">Temperature</div>
-                <div class="value" id="tempVal">—</div>
-                <div class="unit">°C (36.0–37.8)</div>
-            </div>
-        </div>
-
-        <!-- Reward -->
-        <div class="reward-section">
-            <div class="reward-bar-container">
-                <div class="reward-label">REWARD</div>
-                <div class="reward-track"><div class="reward-fill" id="rewardFill"></div></div>
-                <div class="reward-value" id="rewardVal">0.00</div>
-            </div>
-        </div>
-
-        <!-- Controls + Log -->
-        <div class="controls-section">
-            <div class="panel">
-                <h3>🎮 Agent Controls</h3>
-                <div class="action-grid">
-                    <button class="action-btn reset-btn" onclick="doReset()">
-                        <span class="icon">🔄</span> Reset Episode
-                        <span class="desc">Start a new patient scenario</span>
-                    </button>
-                    <button class="action-btn" onclick="doStep('adjust_oxygen','increase')">
-                        <span class="icon">🫁</span> ↑ Oxygen
-                        <span class="desc">Increase O₂ support</span>
-                    </button>
-                    <button class="action-btn" onclick="doStep('adjust_oxygen','decrease')">
-                        <span class="icon">🫁</span> ↓ Oxygen
-                        <span class="desc">Decrease O₂ support</span>
-                    </button>
-                    <button class="action-btn" onclick="doStep('administer_meds','vasopressor','low')">
-                        <span class="icon">💉</span> Vasopressor (low)
-                        <span class="desc">Raise blood pressure</span>
-                    </button>
-                    <button class="action-btn" onclick="doStep('administer_meds','antihypertensive','low')">
-                        <span class="icon">💊</span> Anti-HTN (low)
-                        <span class="desc">Lower blood pressure</span>
-                    </button>
-                    <button class="action-btn" onclick="doStep('trigger_code_sepsis')">
-                        <span class="icon">🚨</span> Sepsis Alert
-                        <span class="desc">Trigger emergency protocol</span>
-                    </button>
-                    <button class="action-btn" onclick="doStep('wait')">
-                        <span class="icon">⏳</span> Wait
-                        <span class="desc">Monitor without action</span>
-                    </button>
-                </div>
-            </div>
-            <div class="panel">
-                <h3>📋 Event Log</h3>
-                <div class="log-panel" id="logPanel">
-                    <div class="log-entry"><span class="info">Welcome to ICU-Guardian. Click "Reset Episode" to begin.</span></div>
-                </div>
+    <!-- Controls + Log -->
+    <div class="controls-grid">
+        <div class="panel">
+            <div class="panel-title">🩺 Clinical Actions</div>
+            <div class="action-grid">
+                <button class="act-btn act-reset" onclick="doReset()">
+                    <div class="act-icon">🔄</div>
+                    <div class="act-name">Admit New Patient</div>
+                    <div class="act-desc">Reset to fresh clinical scenario</div>
+                </button>
+                <button class="act-btn" onclick="doStep('adjust_oxygen','increase')">
+                    <div class="act-icon">🫁</div>
+                    <div class="act-name">↑ Increase O₂</div>
+                    <div class="act-desc">Boost oxygen support</div>
+                </button>
+                <button class="act-btn" onclick="doStep('adjust_oxygen','decrease')">
+                    <div class="act-icon">💨</div>
+                    <div class="act-name">↓ Decrease O₂</div>
+                    <div class="act-desc">Wean oxygen support</div>
+                </button>
+                <button class="act-btn" onclick="doStep('administer_meds','vasopressor','low')">
+                    <div class="act-icon">💉</div>
+                    <div class="act-name">Vasopressor</div>
+                    <div class="act-desc">Raise BP (low dose)</div>
+                </button>
+                <button class="act-btn" onclick="doStep('administer_meds','antihypertensive','low')">
+                    <div class="act-icon">💊</div>
+                    <div class="act-name">Anti-Hypertensive</div>
+                    <div class="act-desc">Lower BP (low dose)</div>
+                </button>
+                <button class="act-btn act-emergency" onclick="doStep('trigger_code_sepsis')">
+                    <div class="act-icon">🚨</div>
+                    <div class="act-name">CODE SEPSIS</div>
+                    <div class="act-desc">Emergency protocol</div>
+                </button>
+                <button class="act-btn" onclick="doStep('wait')">
+                    <div class="act-icon">⏳</div>
+                    <div class="act-name">Monitor & Wait</div>
+                    <div class="act-desc">Observe without intervention</div>
+                </button>
             </div>
         </div>
-
-        <!-- API Endpoints -->
-        <div class="section-title">🔌 API Endpoints</div>
-        <div class="api-section">
-            <div class="api-endpoint"><span class="method method-post">POST</span> <code>/reset</code> <span class="api-desc">Start new episode</span></div>
-            <div class="api-endpoint"><span class="method method-post">POST</span> <code>/step</code> <span class="api-desc">Execute clinical action</span></div>
-            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/state</code> <span class="api-desc">Episode metadata</span></div>
-            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/health</code> <span class="api-desc">Health check</span></div>
-            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/schema</code> <span class="api-desc">Action/observation schema</span></div>
-            <div class="api-endpoint"><span class="method method-get">GET</span> <code>/docs</code> <span class="api-desc">Swagger API docs</span></div>
+        <div class="panel">
+            <div class="panel-title">📋 Clinical Event Log</div>
+            <div class="log-area" id="logArea">
+                <div><span class="l-system">⚕ ICU-Guardian v1.0 — Critical Care AI Training Environment</span></div>
+                <div><span class="l-system">⚕ Click "Admit New Patient" to begin a clinical scenario.</span></div>
+            </div>
         </div>
     </div>
 
-    <div class="footer">
-        <p>🏥 ICU-Guardian — <a href="https://github.com/singhhrishabh/ICU-Guardian">GitHub</a> · Built for the <a href="https://pytorch.org">Meta PyTorch OpenEnv Hackathon</a> · MIT License</p>
+    <!-- API -->
+    <div class="sec-header"><span>OpenEnv HTTP API</span></div>
+    <div class="api-section">
+        <div class="api-row"><span class="api-method m-post">POST</span><code>/reset</code><span class="api-d">Admit new patient</span></div>
+        <div class="api-row"><span class="api-method m-post">POST</span><code>/step</code><span class="api-d">Execute clinical action</span></div>
+        <div class="api-row"><span class="api-method m-get">GET</span><code>/state</code><span class="api-d">Episode state</span></div>
+        <div class="api-row"><span class="api-method m-get">GET</span><code>/health</code><span class="api-d">Container health</span></div>
+        <div class="api-row"><span class="api-method m-get">GET</span><code>/schema</code><span class="api-d">Action & observation schemas</span></div>
+        <div class="api-row"><span class="api-method m-get">GET</span><code>/docs</code><span class="api-d">Interactive Swagger UI</span></div>
     </div>
+</div>
 
-    <script>
-        const BASE = window.location.origin;
+<div class="footer">
+    <div class="med-icons">🏥 🩺 💉 🫀 🩸 🫁 🧬</div>
+    <p><strong>ICU-Guardian</strong> — <a href="https://github.com/singhhrishabh/ICU-Guardian" target="_blank">GitHub</a> · Built for the <a href="https://pytorch.org" target="_blank">Meta PyTorch OpenEnv Hackathon</a></p>
+    <p style="margin-top:0.25rem;opacity:0.5">Simulated environment for AI research. Not for clinical use.</p>
+</div>
 
-        function log(msg, cls='info') {
-            const panel = document.getElementById('logPanel');
-            const t = new Date().toLocaleTimeString('en-US', {hour12:false});
-            panel.innerHTML += `<div class="log-entry"><span class="time">[${t}]</span> <span class="${cls}">${msg}</span></div>`;
-            panel.scrollTop = panel.scrollHeight;
+<script>
+const BASE=location.origin;
+let o2Level=0,totalSafe=0,totalVitals=0;
+
+function log(msg,cls='l-info'){
+    const el=document.getElementById('logArea');
+    const t=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    el.innerHTML+=`<div><span class="l-time">${t}</span> <span class="${cls}">${msg}</span></div>`;
+    el.scrollTop=el.scrollHeight;
+}
+
+function classify(v,lo,hi){
+    if(v>=lo&&v<=hi)return 'v-safe';
+    const m=(hi-lo)*0.12;
+    if(v>=lo-m&&v<=hi+m)return 'v-warn';
+    return 'v-danger';
+}
+
+function rangePercent(v,lo,hi){
+    const mid=(lo+hi)/2,range=(hi-lo)/2;
+    return Math.max(0,Math.min(100, 100-Math.abs(v-mid)/range*50));
+}
+
+function updateVitals(obs,reward){
+    // Values
+    document.getElementById('valHR').textContent=obs.HR;
+    document.getElementById('valBP').textContent=`${obs.BP_sys}/${obs.BP_dia}`;
+    document.getElementById('valSPO2').textContent=obs.SpO2;
+    document.getElementById('valTemp').textContent=obs.Temp.toFixed(1);
+    document.getElementById('stepNum').textContent=obs.step_number;
+    document.getElementById('trendText').textContent=obs.trend||'Stable';
+
+    // Classify
+    const hrC=classify(obs.HR,60,100),bpC=classify(obs.BP_sys,100,140);
+    const spC=classify(obs.SpO2,95,100),tC=classify(obs.Temp,36,37.8);
+    document.getElementById('cardHR').className='vital-card '+hrC;
+    document.getElementById('cardBP').className='vital-card '+bpC;
+    document.getElementById('cardSPO2').className='vital-card '+spC;
+    document.getElementById('cardTemp').className='vital-card '+tC;
+
+    // Range bars
+    document.getElementById('barHR').style.width=rangePercent(obs.HR,60,100)+'%';
+    document.getElementById('barBP').style.width=rangePercent(obs.BP_sys,100,140)+'%';
+    document.getElementById('barSPO2').style.width=rangePercent(obs.SpO2,90,100)+'%';
+    document.getElementById('barTemp').style.width=rangePercent(obs.Temp,35,39)+'%';
+
+    // O2 level tracker
+    const act=obs.last_action_error===null?'':'!';
+    if(obs.step_number===0)o2Level=0;
+    document.getElementById('valO2').textContent=o2Level;
+    document.getElementById('barO2').style.width=(o2Level/5*100)+'%';
+
+    // Safe zone calc
+    let safe=0;
+    if(obs.HR>=60&&obs.HR<=100)safe++;
+    if(obs.BP_sys>=100&&obs.BP_sys<=140)safe++;
+    if(obs.SpO2>=95)safe++;
+    if(obs.Temp>=36&&obs.Temp<=37.8)safe++;
+    totalSafe+=safe;totalVitals+=4;
+    const safeFrac=totalVitals?totalSafe/totalVitals:0;
+    const safeOff=150.8*(1-safeFrac);
+    document.getElementById('safeArc').style.strokeDashoffset=safeOff;
+    document.getElementById('safePct').textContent=Math.round(safeFrac*100)+'%';
+    document.getElementById('safeDesc').textContent=`${safe}/4 vitals in safe range`;
+
+    // Reward ring
+    if(reward!==undefined&&reward!==null){
+        const rOff=150.8*(1-reward);
+        document.getElementById('rewardArc').style.strokeDashoffset=rOff;
+        document.getElementById('rewardPct').textContent=Math.round(reward*100)+'%';
+        const col=reward>=0.6?'var(--green)':reward>=0.3?'var(--amber)':'var(--red)';
+        document.getElementById('rewardArc').style.stroke=col;
+        document.getElementById('rewardDesc').textContent=
+            reward>=0.7?'Excellent clinical decision':reward>=0.5?'Good — patient improving':reward>=0.3?'Moderate — needs attention':'Poor — patient declining';
+    }
+
+    // Task label
+    const names={'vital_stabilization':'Vital Stabilization','bp_management':'BP Management','sepsis_detection':'Sepsis Detection'};
+    const steps={'vital_stabilization':15,'bp_management':20,'sepsis_detection':25};
+    document.getElementById('taskLabel').textContent=names[obs.task_name]||obs.task_name;
+    document.getElementById('maxSteps').textContent=steps[obs.task_name]||'?';
+}
+
+async function doReset(){
+    log('🏥 Admitting new patient…','l-system');
+    totalSafe=0;totalVitals=0;o2Level=0;
+    try{
+        const r=await fetch(BASE+'/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+        const d=await r.json();
+        updateVitals(d.observation,d.reward);
+        const s=await fetch(BASE+'/state').then(r=>r.json());
+        document.getElementById('episodeId').textContent=s.episode_id;
+        document.getElementById('patientId').textContent='ICU-'+s.episode_id.slice(0,6).toUpperCase();
+        const badge=document.getElementById('statusBadge');
+        badge.textContent='ADMITTED';badge.className='patient-status status-active';
+        log(`✅ Patient admitted — HR:${d.observation.HR} BP:${d.observation.BP_sys}/${d.observation.BP_dia} SpO₂:${d.observation.SpO2}% Temp:${d.observation.Temp}°C`,'l-info');
+    }catch(e){log('❌ Admission failed: '+e.message,'l-bad')}
+}
+
+async function doStep(action,levelOrDrug,dose){
+    const body={action:{action}};
+    if(action==='adjust_oxygen'){body.action.level=levelOrDrug;if(levelOrDrug==='increase')o2Level=Math.min(5,o2Level+1);else o2Level=Math.max(0,o2Level-1);}
+    if(action==='administer_meds'){body.action.drug=levelOrDrug;body.action.dose=dose||'low'}
+    const label=action==='administer_meds'?`💉 ${levelOrDrug}(${dose||'low'})`:action==='adjust_oxygen'?`🫁 O₂ ${levelOrDrug}`:action==='trigger_code_sepsis'?'🚨 CODE SEPSIS':'⏳ Monitor';
+    log(`→ ${label}`,'l-action');
+    try{
+        const r=await fetch(BASE+'/step',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await r.json();
+        updateVitals(d.observation,d.reward);
+        const cls=d.reward>=0.5?'l-good':'l-bad';
+        log(`  Step ${d.observation.step_number}: reward=<span class="${cls}">${d.reward.toFixed(2)}</span> | HR:${d.observation.HR} BP:${d.observation.BP_sys}/${d.observation.BP_dia} SpO₂:${d.observation.SpO2}%`,'l-step');
+        if(d.done){
+            log('🏁 Episode complete — patient discharged.','l-system');
+            const badge=document.getElementById('statusBadge');
+            badge.textContent='DISCHARGED';badge.className='patient-status status-done';
         }
-
-        function vitalStatus(val, low, high) {
-            if (val >= low && val <= high) return 'status-safe';
-            const margin = (high - low) * 0.15;
-            if (val >= low - margin && val <= high + margin) return 'status-warning';
-            return 'status-danger';
+        // Critical state detection
+        if(d.observation.SpO2<90||d.observation.BP_sys<80||d.observation.HR>130){
+            const badge=document.getElementById('statusBadge');
+            badge.textContent='CRITICAL';badge.className='patient-status status-critical';
         }
-
-        function updateVitals(obs, reward) {
-            document.getElementById('hrVal').textContent = obs.HR;
-            document.getElementById('bpVal').textContent = `${obs.BP_sys}/${obs.BP_dia}`;
-            document.getElementById('spo2Val').textContent = obs.SpO2;
-            document.getElementById('tempVal').textContent = obs.Temp.toFixed(1);
-            document.getElementById('stepCount').textContent = obs.step_number;
-            document.getElementById('taskName').textContent = obs.task_name;
-
-            document.getElementById('hrDot').className = 'status-dot ' + vitalStatus(obs.HR, 60, 100);
-            document.getElementById('bpDot').className = 'status-dot ' + vitalStatus(obs.BP_sys, 100, 140);
-            document.getElementById('spo2Dot').className = 'status-dot ' + vitalStatus(obs.SpO2, 95, 100);
-            document.getElementById('tempDot').className = 'status-dot ' + vitalStatus(obs.Temp, 36.0, 37.8);
-
-            if (reward !== undefined && reward !== null) {
-                document.getElementById('rewardVal').textContent = reward.toFixed(2);
-                document.getElementById('rewardFill').style.width = (reward * 100) + '%';
-            }
-        }
-
-        async function doReset() {
-            log('Resetting environment...', 'info');
-            try {
-                const r = await fetch(BASE + '/reset', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
-                const d = await r.json();
-                updateVitals(d.observation, d.reward);
-                document.getElementById('episodeId').textContent = 'New';
-                document.getElementById('episodeStatus').textContent = 'Active';
-                document.getElementById('episodeStatus').style.color = 'var(--green)';
-                log(`✅ Episode started — HR:${d.observation.HR} BP:${d.observation.BP_sys}/${d.observation.BP_dia} SpO2:${d.observation.SpO2}% Temp:${d.observation.Temp}°C`, 'info');
-
-                const s = await fetch(BASE + '/state').then(r => r.json());
-                document.getElementById('episodeId').textContent = s.episode_id;
-            } catch(e) { log('❌ Reset failed: ' + e.message, 'reward-bad'); }
-        }
-
-        async function doStep(action, levelOrDrug, dose) {
-            const body = {action: {action}};
-            if (action === 'adjust_oxygen') body.action.level = levelOrDrug;
-            if (action === 'administer_meds') { body.action.drug = levelOrDrug; body.action.dose = dose || 'low'; }
-
-            const label = action === 'administer_meds' ? `${action}(${levelOrDrug},${dose||'low'})` :
-                           action === 'adjust_oxygen' ? `${action}(${levelOrDrug})` : action;
-
-            log(`→ ${label}`, 'action');
-            try {
-                const r = await fetch(BASE + '/step', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-                const d = await r.json();
-                updateVitals(d.observation, d.reward);
-                const rCls = d.reward >= 0.5 ? 'reward-good' : 'reward-bad';
-                log(`  Step ${d.observation.step_number}: reward=<span class="${rCls}">${d.reward.toFixed(2)}</span> | HR:${d.observation.HR} BP:${d.observation.BP_sys}/${d.observation.BP_dia} SpO2:${d.observation.SpO2}%`, 'step');
-
-                if (d.done) {
-                    log('🏁 Episode finished!', 'info');
-                    document.getElementById('episodeStatus').textContent = 'Done';
-                    document.getElementById('episodeStatus').style.color = 'var(--yellow)';
-                }
-            } catch(e) { log('❌ Step failed: ' + e.message, 'reward-bad'); }
-        }
-    </script>
+    }catch(e){log('❌ Step failed: '+e.message,'l-bad')}
+}
+</script>
 </body>
 </html>
