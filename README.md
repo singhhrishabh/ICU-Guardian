@@ -203,13 +203,46 @@ export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
 python inference.py
 ```
 
-## 📊 Baseline Scores
+## 📊 Baseline Results (Qwen2.5-72B-Instruct)
 
-| Task | Difficulty | Baseline Score | Description |
-|------|-----------|---------------|-------------|
-| vital_stabilization | Easy | ~0.55–0.70 | LLM can often stabilize basic vitals |
-| bp_management | Medium | ~0.35–0.50 | Titration requires nuance |
-| sepsis_detection | Hard | ~0.20–0.40 | Pattern detection is challenging |
+Actual inference results using `Qwen/Qwen2.5-72B-Instruct` via HuggingFace Router:
+
+| Task | Difficulty | Score | Steps | Key Actions |
+|------|-----------|-------|-------|-------------|
+| vital_stabilization | Easy | **0.284** | 15 | `adjust_oxygen(increase)` ×2, then monitor |
+| bp_management | Medium | **0.586** | 20 | `vasopressor(low)`, `antihypertensive(low)` — correct titration |
+| sepsis_detection | Hard | **0.050** | 9 | (API credit limit hit — no LLM actions) |
+
+<details>
+<summary>📋 Full inference output (click to expand)</summary>
+
+```
+[START] task=vital_stabilization env=icu_guardian model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action=adjust_oxygen(increase) reward=0.68 done=false error=null
+[STEP] step=2 action=adjust_oxygen(increase) reward=0.64 done=false error=null
+[STEP] step=3 action=wait() reward=0.64 done=false error=null
+...
+[STEP] step=15 action=wait() reward=0.76 done=true error=null
+[END] success=false steps=15 score=0.284 rewards=0.68,0.64,0.64,...,0.80,0.76,0.76
+
+[START] task=bp_management env=icu_guardian model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action=administer_meds(vasopressor,low) reward=0.68 done=false error=null
+[STEP] step=3 action=wait() reward=0.80 done=false error=null
+[STEP] step=6 action=administer_meds(antihypertensive,low) reward=0.72 done=false error=null
+[STEP] step=11 action=administer_meds(vasopressor,low) reward=0.68 done=false error=null
+...
+[STEP] step=20 action=wait() reward=0.80 done=true error=null
+[END] success=true steps=20 score=0.586 rewards=0.68,0.68,0.80,...,0.64,0.80
+
+[START] task=sepsis_detection env=icu_guardian model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action=wait() reward=0.96 done=false error=null
+...
+[STEP] step=9 action=wait() reward=0.06 done=true error=null
+[END] success=false steps=9 score=0.050 rewards=0.96,0.76,...,0.30,0.06
+```
+</details>
+
+**Analysis:** The LLM correctly identified low SpO₂ (increased oxygen) and low BP (gave vasopressor), demonstrating genuine clinical reasoning. The BP management task shows nuanced titration — switching between vasopressor and antihypertensive as BP fluctuated. Sepsis detection scored low due to API rate limits and the inherent difficulty of multi-step pattern recognition.
 
 ## 🔧 Environment Variables
 

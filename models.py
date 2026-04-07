@@ -6,19 +6,23 @@ Data models for the ICU-Guardian Environment.
 
 Uses Python dataclasses inheriting from OpenEnv base types.
 These are server-side models used with the OpenEnv framework.
+Compatible with Python 3.9+ (no kw_only).
 """
 
+import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Union
 
+_KW = {"kw_only": True} if sys.version_info >= (3, 10) else {}
 
-@dataclass(kw_only=True)
+
+@dataclass(**_KW)
 class Action:
     """Base class for all environment actions."""
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(kw_only=True)  
+@dataclass(**_KW)
 class Observation:
     """Base class for all environment observations."""
     done: bool = False
@@ -33,7 +37,7 @@ class State:
     step_count: int = 0
 
 
-@dataclass(kw_only=True)
+@dataclass(**_KW)
 class ICUAction(Action):
     """
     An action the AI agent can take in the ICU environment.
@@ -51,7 +55,7 @@ class ICUAction(Action):
     level: Optional[str] = None
 
 
-@dataclass(kw_only=True)
+@dataclass(**_KW)
 class ICUObservation(Observation):
     """
     The patient's current vital signs and environment state.
