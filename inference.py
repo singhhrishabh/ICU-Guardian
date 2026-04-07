@@ -30,11 +30,11 @@ from models import ICUAction
 from server.icu_environment import ICUEnvironment
 
 # ─── Environment Configuration ───────────────────────────────────────────────
-IMAGE_NAME = os.getenv("IMAGE_NAME")  # Docker image if using from_docker_image()
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")  # Exactly as required by checklist
+API_KEY = os.getenv("HF_TOKEN")
 
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 BENCHMARK = os.getenv("ICU_BENCHMARK", "icu_guardian")
 
 # ─── Task Configuration ──────────────────────────────────────────────────────
@@ -106,10 +106,12 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    # EXACT FORMAT: [END] success=<true|false> steps=<n> rewards=<r1,r2,...,rn>
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}",
+        f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}",
         flush=True,
     )
+
 
 
 # ─── LLM Interaction ─────────────────────────────────────────────────────────
@@ -281,7 +283,7 @@ async def run_task_docker(client: OpenAI, task_name: str, max_steps: int) -> Non
 
     try:
         os.environ["ICU_TASK"] = task_name
-        env = await ICUGuardianEnv.from_docker_image(IMAGE_NAME)
+        env = await ICUGuardianEnv.from_docker_image(LOCAL_IMAGE_NAME)
 
         async with env:
             result = await env.reset()
@@ -349,7 +351,7 @@ def main() -> None:
     """Run all tasks sequentially."""
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
-    if IMAGE_NAME:
+    if LOCAL_IMAGE_NAME:
         # Docker-based execution
         async def _run_all():
             for task in TASKS:
