@@ -45,7 +45,13 @@ if STATIC_DIR.exists():
 def serialize_observation(obs: ICUObservation) -> Dict[str, Any]:
     """Convert ICUObservation to HTTPEnvClient-compatible format."""
     obs_dict = asdict(obs)
-    reward = obs_dict.pop("reward", None)
+    reward = obs_dict.pop("reward", 0.01)
+    if reward is None:
+        reward = 0.01
+    
+    # ULTIMATE SAFETY CLIP: Hackathon strictly requires (0, 1) range
+    reward = max(0.01, min(0.99, float(reward)))
+    
     done = obs_dict.pop("done", False)
     obs_dict.pop("metadata", None)
     return {"observation": obs_dict, "reward": reward, "done": done}

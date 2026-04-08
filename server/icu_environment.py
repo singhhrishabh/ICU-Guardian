@@ -102,7 +102,7 @@ class ICUEnvironment:
 
         if self._done:
             vitals = self._simulator.get_vitals()
-            return self._make_observation(vitals, 0.0, True)
+            return self._make_observation(vitals, 0.01, True)
 
         self._state.step_count += 1
 
