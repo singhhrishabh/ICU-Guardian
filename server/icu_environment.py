@@ -78,7 +78,7 @@ class ICUEnvironment:
         vitals = self._simulator.get_vitals()
         return ICUObservation(
             done=False,
-            reward=0.0001,
+            reward=0.01,
             HR=vitals.HR,
             BP_sys=vitals.BP_sys,
             BP_dia=vitals.BP_dia,
@@ -153,7 +153,7 @@ class ICUEnvironment:
     def get_score(self) -> float:
         """Compute the final graded score. Returns score in [0.0, 1.0]."""
         if not self._task_config or not self._simulator:
-            return 0.0001
+            return 0.01
 
         patient_crashed = self._simulator.is_patient_critical()
 
@@ -186,7 +186,8 @@ class ICUEnvironment:
             )
         
         # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
-        return max(0.0001, min(0.9999, raw_score))
+        # Using [0.01, 0.99] to avoid rounding to 0.00 or 1.00 in logs
+        return max(0.01, min(0.99, raw_score))
 
     def _compute_reward(self, action, vitals_dict, error):
         """Dense reward in [0.0, 1.0] range."""
@@ -213,7 +214,8 @@ class ICUEnvironment:
                 reward -= 0.3
 
         # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
-        return max(0.0001, min(0.9999, reward))
+        # Using [0.01, 0.99] to avoid rounding to 0.00 or 1.00 in logs
+        return max(0.01, min(0.99, reward))
 
     def _evaluate_action_quality(self, action, vitals):
         """Evaluate how appropriate the chosen action is."""

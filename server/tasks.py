@@ -96,7 +96,7 @@ def grade_vital_stabilization(
     Returns score in [0.0, 1.0]
     """
     if patient_crashed or total_steps == 0:
-        return 0.0001
+        return 0.01
 
     # Component 1: Steps in safe zone (60%)
     safe_steps = 0
@@ -126,7 +126,7 @@ def grade_vital_stabilization(
 
     score = 0.60 * safe_fraction + 0.25 * proximity_score + 0.15 * efficiency
     # STRICTLY BETWEEN 0 and 1
-    return round(min(max(score, 0.0001), 0.9999), 4)
+    return round(min(max(score, 0.01), 0.99), 4)
 
 
 def grade_bp_management(
@@ -142,7 +142,7 @@ def grade_bp_management(
     Returns score in [0.0, 1.0]
     """
     if patient_crashed or total_steps == 0:
-        return 0.0001
+        return 0.01
 
     # Component 1: BP stability (45%)
     bp_values = [v["BP_sys"] for v in step_vitals]
@@ -179,7 +179,7 @@ def grade_bp_management(
     score = (0.45 * stability_score + 0.30 * bp_safe_fraction +
              0.15 * overcorrection_penalty + 0.10 * med_efficiency)
     # STRICTLY BETWEEN 0 and 1
-    return round(min(max(score, 0.0001), 0.9999), 4)
+    return round(min(max(score, 0.01), 0.99), 4)
 
 
 def grade_sepsis_detection(
@@ -254,4 +254,4 @@ def grade_sepsis_detection(
     score = (0.40 * detection_score + 0.25 * timing_score +
              0.20 * vital_score + 0.15 * false_alarm_score)
     # STRICTLY BETWEEN 0 and 1
-    return round(min(max(score, 0.0001), 0.9999), 4)
+    return round(min(max(score, 0.01), 0.99), 4)
