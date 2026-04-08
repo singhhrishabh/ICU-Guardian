@@ -258,6 +258,8 @@ def run_task(client: OpenAI, task_name: str, max_steps: int) -> None:
                 break
 
         score = env.get_score()
+        # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
+        score = max(0.0001, min(0.9999, score))
         success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as exc:
@@ -334,8 +336,9 @@ async def run_task_docker(client: OpenAI, task_name: str, max_steps: int) -> Non
                 if done:
                     break
 
-            score = sum(rewards) / (max_steps * 0.8) if max_steps > 0 else 0.0
-            score = min(max(score, 0.0), 1.0)
+            score = sum(rewards) / (max_steps * 0.8) if max_steps > 0 else 0.0001
+            # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
+            score = max(0.0001, min(0.9999, score))
             success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as exc:
