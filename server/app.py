@@ -53,7 +53,12 @@ def serialize_observation(obs: ICUObservation) -> Dict[str, Any]:
     reward = max(0.01, min(0.99, float(reward)))
     
     done = obs_dict.pop("done", False)
-    obs_dict.pop("metadata", None)
+    
+    # Preserve metadata (contains the final score)
+    metadata = obs_dict.get("metadata", {})
+    if "score" in metadata:
+        metadata["score"] = max(0.01, min(0.99, float(metadata["score"])))
+    
     return {"observation": obs_dict, "reward": reward, "done": done}
 
 
