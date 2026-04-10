@@ -41,8 +41,10 @@ class PatientState:
     oxygen_support_level: int = 0  # 0=room air, 1-5=supplemental levels
     sepsis_active: bool = False
     sepsis_stage: int = 0  # 0=none, 1=early, 2=developing, 3=severe
-    sepsis_onset_step: int = -1
     sepsis_detected: bool = False
+    profile_name: str = "Standard Adult"
+    lactate: float = 1.0  # Normal < 2.0
+    organ_stress: float = 0.0  # Accumulates based on critical state
     step_count: int = 0
     history: List[Dict] = field(default_factory=list)
 
@@ -87,6 +89,7 @@ class ICUSimulator:
         """Set initial vitals based on the scenario."""
         if self.scenario == "stable":
             # Easy: Slightly abnormal vitals
+            self.patient.profile_name = "Standard Adult"
             self.patient.vitals = VitalSigns(
                 HR=self.rng.randint(88, 105),
                 BP_sys=self.rng.randint(95, 108),
@@ -100,6 +103,7 @@ class ICUSimulator:
 
         elif self.scenario == "post_surgical":
             # Medium: Volatile BP, otherwise okay
+            self.patient.profile_name = "Elderly with COPD" # Example profile altering baseline
             self.patient.vitals = VitalSigns(
                 HR=self.rng.randint(90, 110),
                 BP_sys=self.rng.randint(85, 100),
@@ -116,6 +120,7 @@ class ICUSimulator:
 
         elif self.scenario == "sepsis":
             # Hard: Starts relatively stable, then sepsis develops
+            self.patient.profile_name = "Immunocompromised"
             self.patient.vitals = VitalSigns(
                 HR=self.rng.randint(75, 90),
                 BP_sys=self.rng.randint(110, 125),
@@ -128,6 +133,22 @@ class ICUSimulator:
             self.noise_intensity = 0.6
             # Sepsis will begin between steps 5-8
             self.patient.sepsis_onset_step = self.rng.randint(5, 8)
+
+        elif self.scenario == "weaning":
+            # Advanced: Patient starts on max oxygen support but has improving intrinsic lung function.
+            # Agent must titrate down O2 level safely.
+            self.patient.profile_name = "Recovering Pneumonia"
+            self.patient.vitals = VitalSigns(
+                HR=self.rng.randint(75, 85),
+                BP_sys=self.rng.randint(110, 125),
+                BP_dia=self.rng.randint(70, 80),
+                SpO2=self.rng.randint(97, 100),
+                Temp=round(37.0 + self.rng.random() * 0.2, 1),
+            )
+            # High initial oxygen
+            self.patient.oxygen_support_level = 5
+            self.drift_intensity = 0.2
+            self.noise_intensity = 0.4
 
     def get_vitals(self) -> VitalSigns:
         """Return current vital signs (copy)."""
@@ -179,10 +200,11 @@ class ICUSimulator:
             pass  # No intervention
 
         elif action == "administer_meds":
-            if drug not in ("vasopressor", "antihypertensive"):
-                return f"Invalid drug: {drug}. Must be 'vasopressor' or 'antihypertensive'."
-            if dose not in ("low", "high"):
-                return f"Invalid dose: {dose}. Must be 'low' or 'high'."
+            valid_drugs = ("vasopressor", "antihypertensive", "antibiotics", "fluids", "sedative")
+            if drug not in valid_drugs:
+                return f"Invalid drug: {drug}. Must be one of {valid_drugs}."
+            if dose not in ("low", "high") and drug not in ("antibiotics", "fluids"):
+                return f"Invalid dose for {drug}. Use 'low' or 'high'."
 
             # Check for dangerous drug interactions
             active_drugs = [m.drug for m in self.patient.active_medications]
@@ -192,8 +214,11 @@ class ICUSimulator:
                 return "WARNING: Conflicting medications — antihypertensive given with active vasopressor."
 
             duration = 3 if dose == "low" else 4
+            if drug == "antibiotics": duration = 10
+            if drug == "fluids": duration = 2
+            
             self.patient.active_medications.append(
-                MedicationEffect(drug=drug, dose=dose, steps_remaining=duration)
+                MedicationEffect(drug=drug, dose=dose or "standard", steps_remaining=duration)
             )
 
         elif action == "adjust_oxygen":
@@ -283,6 +308,19 @@ class ICUSimulator:
                 med_bp_dia_delta -= magnitude * 0.5 * effect_multiplier
                 med_hr_delta -= 2 * effect_multiplier
 
+            elif med.drug == "fluids":
+                med_bp_sys_delta += 4 * effect_multiplier
+                med_bp_dia_delta += 2 * effect_multiplier
+
+            elif med.drug == "sedative":
+                med_hr_delta -= 5 * effect_multiplier
+                med_bp_sys_delta -= 5 * effect_multiplier
+                
+            elif med.drug == "antibiotics":
+                # Antibiotics slowly resolve sepsis active state
+                if self.patient.sepsis_active and med.steps_remaining <= 5:
+                    self.patient.sepsis_active = False
+
             med.steps_remaining -= 1
             if med.steps_remaining <= 0:
                 meds_to_remove.append(i)
@@ -345,6 +383,39 @@ class ICUSimulator:
         v.BP_dia = max(30, min(130, v.BP_dia))
         v.SpO2 = max(60, min(100, v.SpO2))
         v.Temp = max(34.0, min(42.0, round(v.Temp, 1)))
+
+        # Ensure BP_sys > BP_dia
+        if v.BP_sys <= v.BP_dia:
+            v.BP_sys = v.BP_dia + 20
+
+        # === Calculate Labs and Organ Stress ===
+        # Lactate rises if tissues are under-perfused or severe sepsis
+        lactate_drift = 0.0
+        if v.BP_sys < 90:
+            lactate_drift += 0.1
+        if v.SpO2 < 92:
+            lactate_drift += 0.1
+        if getattr(self.patient, 'sepsis_stage', 0) >= 2: # use getattr for safety
+            lactate_drift += 0.2
+        if lactate_drift == 0.0:
+            lactate_drift -= 0.1 # Clear lactate if perfusion is okay
+            
+        self.patient.lactate = max(0.5, min(15.0, self.patient.lactate + lactate_drift))
+        
+        # Organ stress accumulates while vitals are heavily out of bounds
+        critical_vitals = sum([
+            1 if v.HR < 50 or v.HR > 140 else 0,
+            1 if v.BP_sys < 80 or v.BP_sys > 180 else 0,
+            1 if v.SpO2 < 88 else 0
+        ])
+        
+        if critical_vitals > 0:
+            self.patient.organ_stress += critical_vitals * 0.5
+        elif self.patient.organ_stress > 0:
+            # Slow recovery
+            self.patient.organ_stress -= 0.1
+            
+        self.patient.organ_stress = max(0.0, float(self.patient.organ_stress))
 
         # Ensure BP_sys > BP_dia
         if v.BP_sys <= v.BP_dia:

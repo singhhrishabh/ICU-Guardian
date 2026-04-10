@@ -53,6 +53,7 @@ class ICUAction(Action):
     drug: Optional[str] = None
     dose: Optional[str] = None
     level: Optional[str] = None
+    rationale: Optional[str] = None  # Explainable AI functionality
 
 
 @dataclass(**_KW)
@@ -66,6 +67,9 @@ class ICUObservation(Observation):
     BP_dia: int = 80
     SpO2: int = 98
     Temp: float = 37.0
+    lactate: float = 1.0  # Lab value for sepsis (mmol/L)
+    organ_stress: float = 0.0  # Cumulative damage metric
+    patient_profile: str = "Standard Adult"
     trend: str = "No prior data."
     step_number: int = 0
     task_name: str = "vital_stabilization"

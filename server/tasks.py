@@ -255,3 +255,49 @@ def grade_sepsis_detection(
              0.20 * vital_score + 0.15 * false_alarm_score)
     # STRICTLY BETWEEN 0 and 1
     return round(min(max(score, 0.01), 0.99), 4)
+
+
+def grade_weaning(
+    step_vitals: List[Dict],
+    actions_taken: List[Dict],
+    total_steps: int,
+    max_steps: int,
+    patient_crashed: bool,
+    final_oxygen_level: int,
+) -> float:
+    """
+    Grade the Oxygen Weaning task.
+
+    Score = weighted combination of:
+    - 40%: Final O2 level (lower is better, ideally 0)
+    - 40%: Avoiding hypoxia (SpO2 >= 95)
+    - 20%: Step efficiency (weaning completed without delays)
+
+    Returns score in [0.01, 0.99]
+    """
+    if patient_crashed:
+        return 0.01
+
+    # Component 1: Final O2 level (40%)
+    o2_score = max(0.0, 1.0 - (final_oxygen_level / 5.0))
+
+    # Component 2: Safely maintaining SpO2 (40%)
+    hypoxia_steps = sum(1 for v in step_vitals if v["SpO2"] < 90)
+    safe_steps = sum(1 for v in step_vitals if v["SpO2"] >= 95)
+    sp02_score = 1.0
+    if len(step_vitals) > 0:
+        sp02_score = (safe_steps / len(step_vitals)) - (hypoxia_steps * 0.2)
+    sp02_score = max(0.0, min(1.0, sp02_score))
+
+    # Component 3: Efficiency (20%)
+    # Penalty for too many wait steps without weaning if O2 is still high
+    efficiency_score = 1.0 # placeholder, assumes perfectly efficient unless O2 is 0 early
+    if final_oxygen_level == 0:
+        efficiency_score = 1.0
+    else:
+        efficiency_score = 0.5 
+
+    score = 0.4 * o2_score + 0.4 * sp02_score + 0.2 * efficiency_score
+    
+    # STRICTLY BETWEEN 0 and 1
+    return round(min(max(score, 0.01), 0.99), 4)

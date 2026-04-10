@@ -42,6 +42,7 @@ TASKS = [
     {"name": "vital_stabilization", "max_steps": 15},
     {"name": "bp_management", "max_steps": 20},
     {"name": "sepsis_detection", "max_steps": 25},
+    {"name": "weaning", "max_steps": 20},
 ]
 
 TEMPERATURE = 0.3
@@ -68,15 +69,15 @@ SYSTEM_PROMPT = textwrap.dedent("""
     - SpO2: 95-100%
     - Temp: 36.0-37.8°C
 
-    ACTION SPACE (respond with ONLY valid JSON, no markdown, no explanation):
-    {"action": "administer_meds", "drug": "vasopressor", "dose": "low"}
-    {"action": "administer_meds", "drug": "vasopressor", "dose": "high"}
-    {"action": "administer_meds", "drug": "antihypertensive", "dose": "low"}
-    {"action": "administer_meds", "drug": "antihypertensive", "dose": "high"}
-    {"action": "adjust_oxygen", "level": "increase"}
-    {"action": "adjust_oxygen", "level": "decrease"}
+    AVAILABLE ACTIONS:
+    {"action": "wait"} -> Default monitoring.
+    {"action": "adjust_oxygen", "level": "increase|decrease"}
+    {"action": "administer_meds", "drug": "vasopressor|antihypertensive|antibiotics|fluids|sedative", "dose": "low|high|standard"}
     {"action": "trigger_code_sepsis"}
-    {"action": "wait"}
+
+    You MUST include a "rationale" string in your JSON output explaining your clinical reasoning.
+
+    RESPOND EXCLUSIVELY WITH VALID JSON.
 
     STRATEGY:
     - If SpO2 < 95: increase oxygen

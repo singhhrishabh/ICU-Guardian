@@ -28,6 +28,7 @@ from server.tasks import (
     grade_vital_stabilization,
     grade_bp_management,
     grade_sepsis_detection,
+    grade_weaning,
 )
 
 
@@ -184,6 +185,15 @@ class ICUEnvironment:
                 sepsis_detection_step=self._sepsis_detection_step,
                 patient_crashed=patient_crashed,
             )
+        elif self._task_name == "weaning":
+            raw_score = grade_weaning(
+                step_vitals=self._step_vitals,
+                actions_taken=self._actions_taken,
+                total_steps=self._state.step_count,
+                max_steps=self._task_config.max_steps,
+                patient_crashed=patient_crashed,
+                final_oxygen_level=self._simulator.patient.oxygen_support_level,
+            )
         
         # STICKTLY BETWEEN 0 and 1: Hackathon requirement (not 0.0 and not 1.0)
         # Using [0.01, 0.99] to avoid rounding to 0.00 or 1.00 in logs
@@ -284,6 +294,9 @@ class ICUEnvironment:
             BP_dia=vitals.BP_dia,
             SpO2=vitals.SpO2,
             Temp=vitals.Temp,
+            lactate=round(self._simulator.patient.lactate, 1) if self._simulator else 1.0,
+            organ_stress=round(self._simulator.patient.organ_stress, 2) if self._simulator else 0.0,
+            patient_profile=self._simulator.patient.profile_name if self._simulator else "Unknown",
             trend=self._simulator.get_trend_summary() if self._simulator else "",
             step_number=self._state.step_count,
             task_name=self._task_name,

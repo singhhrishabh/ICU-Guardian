@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ICU-Guardian — Critical Care AI Environment</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         :root{
@@ -97,6 +98,7 @@
         }
         .patient-id .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:livePulse 1.5s ease infinite}
         .patient-meta{font-size:0.75rem;color:var(--text-dim)}
+        .patient-profile{font-size:0.75rem;color:var(--amber); font-weight: 700; padding: 0.2rem 0.5rem; background: var(--amber-dim); border-radius: 4px; border: 1px solid rgba(255,171,0,0.3);}
         .patient-meta span{color:var(--text-bright);font-weight:600}
         .patient-status{
             margin-left:auto;padding:0.25rem 0.75rem;border-radius:100px;
@@ -178,6 +180,13 @@
         }
         .score-info .score-label{font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim)}
         .score-info .score-desc{font-size:0.75rem;color:var(--text);margin-top:0.15rem}
+
+        /* Trend chart area */
+        .chart-container{
+            background:var(--surface);border:1px solid var(--border);border-radius:12px;
+            padding:1rem;margin-bottom:1.25rem;backdrop-filter:blur(12px);
+            height: 200px; width: 100%; position: relative;
+        }
 
         /* Trend bar */
         .trend-bar{
@@ -340,6 +349,20 @@
             <div class="v-unit">Level</div>
             <div class="v-range"><div class="v-range-fill" id="barO2" style="width:0%"></div></div>
         </div>
+        <div class="vital-card" id="cardLactate">
+            <div class="v-icon">🧪</div>
+            <div class="v-label">Lactate</div>
+            <div class="v-value" id="valLactate">—</div>
+            <div class="v-unit">mmol/L</div>
+            <div class="v-range"><div class="v-range-fill" id="barLactate" style="width:0%"></div></div>
+        </div>
+        <div class="vital-card" id="cardStress">
+            <div class="v-icon">⚠️</div>
+            <div class="v-label">Organ Stress</div>
+            <div class="v-value" id="valStress">—</div>
+            <div class="v-unit">Cumulative</div>
+            <div class="v-range"><div class="v-range-fill" id="barStress" style="width:0%"></div></div>
+        </div>
     </div>
 
     <!-- Score rings + Trend -->
@@ -370,6 +393,11 @@
     <div class="trend-bar">
         <span class="trend-icon">📈</span>
         <span class="trend-text" id="trendText">Awaiting patient admission…</span>
+    </div>
+
+    <!-- Trend Chart -->
+    <div class="chart-container">
+        <canvas id="vitalsChart"></canvas>
     </div>
 
     <!-- Controls + Log -->
@@ -406,6 +434,21 @@
                     <div class="act-icon">🚨</div>
                     <div class="act-name">CODE SEPSIS</div>
                     <div class="act-desc">Emergency protocol</div>
+                </button>
+                <button class="act-btn" onclick="doStep('administer_meds','antibiotics','standard')">
+                    <div class="act-icon">💊</div>
+                    <div class="act-name">Antibiotics</div>
+                    <div class="act-desc">Treat Sepsis</div>
+                </button>
+                <button class="act-btn" onclick="doStep('administer_meds','fluids','high')">
+                    <div class="act-icon">💧</div>
+                    <div class="act-name">IV Fluids</div>
+                    <div class="act-desc">Raise BP (Safe)</div>
+                </button>
+                <button class="act-btn" onclick="doStep('administer_meds','sedative','low')">
+                    <div class="act-icon">💤</div>
+                    <div class="act-name">Sedative</div>
+                    <div class="act-desc">Lower HR/BP</div>
                 </button>
                 <button class="act-btn" onclick="doStep('wait')">
                     <div class="act-icon">⏳</div>
@@ -522,12 +565,83 @@ function updateVitals(obs,reward){
     const steps={'vital_stabilization':15,'bp_management':20,'sepsis_detection':25};
     document.getElementById('taskLabel').textContent=names[obs.task_name]||obs.task_name;
     document.getElementById('maxSteps').textContent=steps[obs.task_name]||'?';
+    
+    // V2 additions
+    if (obs.lactate) {
+        document.getElementById('valLactate').textContent=obs.lactate.toFixed(1);
+        document.getElementById('barLactate').style.width=Math.min(100, (obs.lactate/15)*100)+'%';
+        document.getElementById('cardLactate').className='vital-card '+(obs.lactate<2?'v-safe':obs.lactate<4?'v-warn':'v-danger');
+    }
+    if (obs.organ_stress !== undefined) {
+        document.getElementById('valStress').textContent=obs.organ_stress.toFixed(1);
+        document.getElementById('barStress').style.width=Math.min(100, (obs.organ_stress/20)*100)+'%';
+        document.getElementById('cardStress').className='vital-card '+(obs.organ_stress<5?'v-safe':obs.organ_stress<10?'v-warn':'v-danger');
+    }
+    if (obs.patient_profile) {
+        const pEl = document.getElementById('profText');
+        if (pEl) pEl.textContent = obs.patient_profile;
+        else {
+            const pb = document.createElement('div');
+            pb.className = 'patient-profile';
+            pb.id = 'profText';
+            pb.textContent = obs.patient_profile;
+            document.querySelector('.patient-bar').insertBefore(pb, document.querySelector('.patient-status'));
+        }
+    }
+    
+    // Update Chart
+    if (window.vitalsChartObj) {
+        window.vitalsChartObj.data.labels.push(obs.step_number);
+        window.vitalsChartObj.data.datasets[0].data.push(obs.HR);
+        window.vitalsChartObj.data.datasets[1].data.push(obs.BP_sys);
+        window.vitalsChartObj.data.datasets[2].data.push(obs.SpO2);
+        
+        // Keep last 20 steps
+        if (window.vitalsChartObj.data.labels.length > 20) {
+            window.vitalsChartObj.data.labels.shift();
+            window.vitalsChartObj.data.datasets[0].data.shift();
+            window.vitalsChartObj.data.datasets[1].data.shift();
+            window.vitalsChartObj.data.datasets[2].data.shift();
+        }
+        window.vitalsChartObj.update();
+    }
 }
+
+function initChart() {
+    const ctx = document.getElementById('vitalsChart').getContext('2d');
+    Chart.defaults.color = '#5a8a96';
+    Chart.defaults.font.family = 'JetBrains Mono';
+    window.vitalsChartObj = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'HR', borderColor: '#00e676', backgroundColor: 'rgba(0,230,118,0.1)', data: [], tension: 0.4, borderWidth: 2, pointRadius: 2 },
+                { label: 'BP_sys', borderColor: '#40c4ff', backgroundColor: 'rgba(64,196,255,0.1)', data: [], tension: 0.4, borderWidth: 2, pointRadius: 2 },
+                { label: 'SpO2', borderColor: '#ff3d5a', backgroundColor: 'rgba(255,61,90,0.1)', data: [], tension: 0.4, borderWidth: 2, pointRadius: 2 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: {size: 10} } } },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+window.onload = initChart;
 
 async function doReset(){
     log('🏥 Admitting new patient…','l-system');
     totalSafe=0;totalVitals=0;o2Level=0;
     try{
+        if (window.vitalsChartObj) {
+            window.vitalsChartObj.data.labels = [];
+            window.vitalsChartObj.data.datasets.forEach(d => d.data = []);
+            window.vitalsChartObj.update();
+        }
         const r=await fetch(BASE+'/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
         const d=await r.json();
         updateVitals(d.observation,d.reward);
